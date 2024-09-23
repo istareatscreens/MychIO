@@ -4,7 +4,6 @@ using System.Linq;
 using System.Threading.Tasks;
 using MychIO.Connection;
 using MychIO.Connection.SerialDevice;
-using UnityEditorInternal;
 
 namespace MychIO.Device
 {
@@ -20,7 +19,7 @@ namespace MychIO.Device
         private static readonly Dictionary<TouchPanelZone, byte> BYTE_MASKS = new Dictionary<TouchPanelZone, byte>
         {
             // Byte 0 (0x00) masks
-            { TouchPanelZone.A1, 0b00000001 }, 
+            { TouchPanelZone.A1, 0b00000001 },
             { TouchPanelZone.A2, 0b00000010 },
             { TouchPanelZone.A3, 0b00000100 },
             { TouchPanelZone.A4, 0b00001000 },
@@ -82,13 +81,13 @@ namespace MychIO.Device
             writeTimeoutMS: SerialDeviceProperties.DEFAULT_WRITE_TIMEOUT_MS,
             bufferByteLength: 9,
             pollingRateMs: 10,
-            portNumber:  0,
-            baudRate:  BaudRate.Bd9600,
-            stopBit:  StopBits.One,
-            parityBit:  Parity.None,
-            dataBits:  DataBits.Eight,
+            portNumber: 0,
+            baudRate: BaudRate.Bd9600,
+            stopBit: StopBits.One,
+            parityBit: Parity.None,
+            dataBits: DataBits.Eight,
             handshake: Handshake.None,
-            dtr:  false,
+            dtr: false,
             rts: false
         );
 

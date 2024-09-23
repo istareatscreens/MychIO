@@ -1,8 +1,3 @@
-using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Threading.Tasks;
-
 namespace MychIO.Connection.SerialDevice
 {
     public enum BaudRate
@@ -46,7 +41,7 @@ namespace MychIO.Connection.SerialDevice
     {
         None = 0,
         XOnXOff = 1,
-        RequestToSend= 2,
+        RequestToSend = 2,
         RequestToSendXOnXOff = 3,
     }
 

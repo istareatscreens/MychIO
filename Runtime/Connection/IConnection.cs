@@ -7,6 +7,7 @@ namespace MychIO.Connection
         void Disconnect();
         Task Connect();
         bool IsConnected();
+        bool CanConnect(IConnection connection);
         Task Write(byte[] data);
     }
 }

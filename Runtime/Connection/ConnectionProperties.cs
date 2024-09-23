@@ -1,18 +1,17 @@
 using System;
 using System.Collections.Generic;
-using System.Linq;
 using System.Reflection;
-using System.Threading.Tasks;
 
 namespace MychIO.Connection
 {
 
     // Note all public properties of this class will be added to the _properties object
     // Properties should only be updated on object construction through the constructor
-    public abstract class ConnectionProperties: IConnectionProperties
+    public abstract class ConnectionProperties : IConnectionProperties
     {
         private IDictionary<string, dynamic> _properties;
-        public IConnectionProperties UpdateProperties(IDictionary<string, dynamic> updateProperties){
+        public IConnectionProperties UpdateProperties(IDictionary<string, dynamic> updateProperties)
+        {
             _properties = MergeProperties(_properties, updateProperties);
             UpdateFieldsFromProperties();
             return this;
@@ -22,9 +21,9 @@ namespace MychIO.Connection
             IDictionary<string, dynamic> overWrittenProperties, IDictionary<string, dynamic> updateProperties)
         {
             var result = new Dictionary<string, dynamic>(overWrittenProperties);
-            foreach (var (key, value)  in updateProperties)
+            foreach (var (key, value) in updateProperties)
             {
-                result[key] = value; 
+                result[key] = value;
             }
             return result;
         }
@@ -55,7 +54,8 @@ namespace MychIO.Connection
                 try
                 {
                     field.SetValue(this, value);
-                }catch(Exception){ }
+                }
+                catch (Exception) { }
             }
         }
 
