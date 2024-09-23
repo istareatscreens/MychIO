@@ -2,10 +2,12 @@ using System;
 using System.Collections.Generic;
 using System.Threading.Tasks;
 using MychIO.Connection;
+using MychIO.Generic;
+using PlasticGui.WorkspaceWindow;
 
 namespace MychIO.Device
 {
-    public interface IDevice
+    public interface IDevice : IIdentifier
     {
         void ResetState();
         // TODO: create multiple read methods (likely dont want wrapper since its slower)
@@ -17,6 +19,7 @@ namespace MychIO.Device
         bool CanConnect(IDevice device);
         IConnection GetConnection();
         Task Write(params Enum[] interactions);
+        DeviceClassification GetClassification();
     }
     // Where T is the input type, e.g. A1
     interface IDevice<T> : IDevice where T : Enum

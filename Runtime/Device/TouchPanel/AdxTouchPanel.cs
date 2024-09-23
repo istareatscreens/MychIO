@@ -68,7 +68,7 @@ namespace MychIO.Device
         public const string ADX_TOUCH_PANEL = "AdxTocuhPanel";
 
         public AdxTouchPanel(
-            IDictionary<TouchPanelZone, Action<TouchPanelZone, Enum>> inputSubscriptions,
+            IDictionary<Enum, InputEvent> inputSubscriptions,
             IDictionary<string, dynamic> connectionProperties = null
         ) : base(inputSubscriptions, connectionProperties)
         { }

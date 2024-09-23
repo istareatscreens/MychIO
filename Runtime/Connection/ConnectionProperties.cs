@@ -1,5 +1,6 @@
 using System;
 using System.Collections.Generic;
+using System.Data.Common;
 using System.Reflection;
 
 namespace MychIO.Connection
@@ -10,10 +11,14 @@ namespace MychIO.Connection
     public abstract class ConnectionProperties : IConnectionProperties
     {
         private IDictionary<string, dynamic> _properties;
+
+        public string Id { get; private set; }
+
         public IConnectionProperties UpdateProperties(IDictionary<string, dynamic> updateProperties)
         {
             _properties = MergeProperties(_properties, updateProperties);
             UpdateFieldsFromProperties();
+            Id = _properties.TryGetValue("Id", out var id) && id is string v ? v : Guid.NewGuid().ToString();
             return this;
         }
 
@@ -62,5 +67,6 @@ namespace MychIO.Connection
         public IDictionary<string, dynamic> GetProperties() => _properties;
 
         public abstract ConnectionType GetConnectionType();
+
     }
 }

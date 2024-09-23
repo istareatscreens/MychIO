@@ -18,7 +18,7 @@ namespace MychIO.Device
         public static async Task<IDevice> GetDeviceAsync(
             string deviceName,
             IDictionary<string, dynamic> connectionProperties = null,
-            IDictionary<TouchPanelZone, Action<TouchPanelZone, Enum>> inputSubscriptions = null,
+            IDictionary<Enum, InputEvent> inputSubscriptions = null,
             IDevice[] ConnectedDevices = null
         )
         {
@@ -31,7 +31,6 @@ namespace MychIO.Device
                 .GetConstructors()
                 .First()
             ;
-
 
             if (constructor == null)
             {
@@ -47,6 +46,22 @@ namespace MychIO.Device
 
             return await device.Connect();
         }
-    }
 
+        public static DeviceClassification GetClassificationFromDeviceName(string deviceName)
+        {
+            if (!_deviceNameToType.TryGetValue(deviceName, out var deviceType))
+            {
+                throw new Exception("Could not find device");
+            }
+            var deviceClassificationMethod = deviceType
+                .GetMethod(
+                    "GetDeviceClassification",
+                    System.Reflection.BindingFlags.Static |
+                    System.Reflection.BindingFlags.Public
+                 );
+            return (DeviceClassification)deviceClassificationMethod.Invoke(null, null);
+        }
+
+
+    }
 }
