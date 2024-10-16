@@ -18,8 +18,9 @@ namespace MychIO.Device
         public static async Task<IDevice> GetDeviceAsync(
             string deviceName,
             IDictionary<string, dynamic> connectionProperties = null,
-            IDictionary<Enum, InputEvent> inputSubscriptions = null,
-            IDevice[] ConnectedDevices = null
+            IDictionary<Enum, Action<Enum, Enum>> inputSubscriptions = null,
+            IDevice[] ConnectedDevices = null,
+            IOManager manager = null
         )
         {
             if (!_deviceNameToType.TryGetValue(deviceName, out var deviceType))
@@ -36,7 +37,7 @@ namespace MychIO.Device
             {
                 throw new Exception($"No suitable constructor found for device type {deviceType}");
             }
-            var device = (IDevice)constructor.Invoke(new object[] { inputSubscriptions, connectionProperties });
+            var device = (IDevice)constructor.Invoke(new object[] { inputSubscriptions, connectionProperties, manager });
 
             // Check if the connection can even be created or if a duplicate device exists
             if (!ConnectedDevices.All(d => d.CanConnect(device)))

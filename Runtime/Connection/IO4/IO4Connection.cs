@@ -8,8 +8,8 @@ namespace MychIO.Connection.IO4
 
         private int _pollTimeoutMs;
 
-        public IO4Connection(IDevice device, IConnectionProperties connectionProperties) :
-         base(device, connectionProperties)
+        public IO4Connection(IDevice device, IConnectionProperties connectionProperties, IOManager manager) :
+         base(device, connectionProperties, manager)
         { }
 
         public new static ConnectionType GetConnectionType() => ConnectionType.SerialDevice;

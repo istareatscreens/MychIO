@@ -3,6 +3,7 @@ using System.IO.Ports;
 using System.Threading;
 using System.Threading.Tasks;
 using MychIO.Device;
+using MychIO.Event;
 
 namespace MychIO.Connection.SerialDevice
 {
@@ -14,8 +15,8 @@ namespace MychIO.Connection.SerialDevice
         private int _bufferByteLength;
         private readonly CancellationTokenSource _cancellationTokenSource = new CancellationTokenSource();
 
-        public SerialDeviceConnection(IDevice device, IConnectionProperties connectionProperties) :
-         base(device, connectionProperties)
+        public SerialDeviceConnection(IDevice device, IConnectionProperties connectionProperties, IOManager manager) :
+         base(device, connectionProperties, manager)
         { }
 
         public new static ConnectionType GetConnectionType() => ConnectionType.SerialDevice;
@@ -55,6 +56,8 @@ namespace MychIO.Connection.SerialDevice
                 await RecieveData();
             });
 
+            _manager.handleEvent(IOEventType.Attach, _device.GetClassification(), _device.GetType().ToString() + " Device connected");
+
             return Task.CompletedTask;
         }
 
@@ -62,23 +65,25 @@ namespace MychIO.Connection.SerialDevice
         {
             try
             {
-                byte[] buffer = new byte[_bufferByteLength];
                 while (!_cancellationTokenSource.Token.IsCancellationRequested)
                 {
-                    await Task.Delay(_pollTimeoutMs, _cancellationTokenSource.Token);
-
-                    int bytesRead = await _serialPort.BaseStream.ReadAsync(buffer, 0, _bufferByteLength);
-                    if (bytesRead == 0) { continue; } // Handle case where no data is read
+                    //int bytesRead = _serialPort.Read(buffer, 0, _bufferByteLength);
+                    int bytesRead = _serialPort.BytesToRead;
+                    byte[] buffer = new byte[bytesRead];
+                    _serialPort.Read(buffer, 0, bytesRead);
+                    if (bytesRead < _bufferByteLength) { continue; } // Handle case where not enough data to read
                     _device.ReadData(buffer);
+                    await Task.Delay(_pollTimeoutMs, _cancellationTokenSource.Token);
                 }
             }
             catch (TaskCanceledException)
             {
                 // Nothing to do here event was sent to detach
             }
-            catch (Exception)
+            catch (Exception e)
             {
                 // Throw event here potentially in the future for now just disconnect
+                _manager.handleEvent(IOEventType.ConnectionError, _device.GetClassification(), _device.GetType().ToString() + "device connection failed due to following exception: " + e);
                 Disconnect();
             }
         }
@@ -97,11 +102,12 @@ namespace MychIO.Connection.SerialDevice
                 _serialPort.Close();
             }
             _serialPort = null;
+            _manager.handleEvent(IOEventType.Detach, _device.GetClassification(), _device.GetType().ToString() + "device disconnected");
         }
 
         public override bool IsConnected()
         {
-            return _serialPort.IsOpen;
+            return _serialPort?.IsOpen ?? false;
         }
 
         public async override Task Write(byte[] data)

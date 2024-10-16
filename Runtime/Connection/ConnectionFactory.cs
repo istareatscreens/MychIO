@@ -18,7 +18,7 @@ namespace MychIO.Connection
             { ConnectionType.SerialDevice, typeof(SerialDeviceConnection) }
             // Add other connections here...
         };
-        internal static IConnection GetConnection(IDevice device, IConnectionProperties connectionProperties)
+        internal static IConnection GetConnection(IDevice device, IConnectionProperties connectionProperties, IOManager manager)
         {
 
             var deviceType = device.GetType();
@@ -45,7 +45,7 @@ namespace MychIO.Connection
                 throw new Exception($"No suitable constructor found for device type {connectionClassType}");
             }
 
-            return (IConnection)constructor.Invoke(new object[] { device, connectionProperties });
+            return (IConnection)constructor.Invoke(new object[] { device, connectionProperties, manager });
 
         }
     }

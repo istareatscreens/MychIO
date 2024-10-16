@@ -15,8 +15,8 @@ namespace MychIO.Connection.HID
         private int _bufferByteLength;
         private readonly CancellationTokenSource _cancellationTokenSource = new CancellationTokenSource();
 
-        public HIDConnection(IDevice device, IConnectionProperties connectionProperties) :
-         base(device, connectionProperties)
+        public HIDConnection(IDevice device, IConnectionProperties connectionProperties, IOManager manager) :
+         base(device, connectionProperties, manager)
         { }
 
 

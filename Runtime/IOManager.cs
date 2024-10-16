@@ -1,51 +1,110 @@
-using Unity;
-using UnityEngine;
 using System;
-using System.Collections;
 using System.Collections.Generic;
 using System.Threading.Tasks;
 using MychIO.Device;
-using System.IO.Ports;
 using System.Linq;
+using UnityEngine.EventSystems;
+using MychIO.Event;
 
 namespace MychIO
 {
-
-    public delegate void InputEvent(Enum key, Enum value);
 
     public class IOManager
     {
 
         protected IDictionary<DeviceClassification, IDevice> _deviceClassificationToDevice = new Dictionary<DeviceClassification, IDevice>();
-        protected IDictionary<DeviceClassification, IDictionary<Enum, InputEvent>> _deviceClassificationToDeviceAction = new Dictionary<DeviceClassification, IDictionary<Enum, InputEvent>>();
+        protected IDictionary<DeviceClassification, IDictionary<Enum, Action<Enum, Enum>>> _deviceClassificationToDeviceInputAction = new Dictionary<DeviceClassification, IDictionary<Enum, Action<Enum, Enum>>>();
+        protected IDictionary<IOEventType, ControllerEventDelegate> _eventTypeToCallback = new Dictionary<IOEventType, ControllerEventDelegate>();
 
         public IOManager() { }
 
-        public async Task<IOManager> AddDevice(
+        public async Task AddDeviceByName(
             string deviceName,
-            IDictionary<string, dynamic> connectionProperties,
-            IDictionary<Enum, InputEvent> inputSubscriptions = null
+            IDictionary<string, dynamic> connectionProperties = null,
+            IDictionary<Enum, Action<Enum, Enum>> inputSubscriptions = null,
+            DeviceClassification deviceClassification = DeviceClassification.Undefined
         )
         {
-            var deviceClassification = DeviceFactory.GetClassificationFromDeviceName(deviceName);
+            if (DeviceClassification.Undefined == deviceClassification)
+            {
+                deviceClassification = DeviceFactory.GetClassificationFromDeviceName(deviceName);
+            }
+            if (DeviceClassification.Undefined == deviceClassification)
+            {
+                throw new Exception("Invalid classification passed to function");
+            }
             if (null != inputSubscriptions)
             {
-                _deviceClassificationToDeviceAction.Add(deviceClassification, inputSubscriptions);
+                _deviceClassificationToDeviceInputAction.Add(deviceClassification, inputSubscriptions);
             }
-            else if (_deviceClassificationToDeviceAction.TryGetValue(deviceClassification, out var setDeviceClassification))
+            else if (_deviceClassificationToDeviceInputAction.TryGetValue(deviceClassification, out var setDeviceClassification))
             {
                 inputSubscriptions = setDeviceClassification;
+            }
+
+            if (_deviceClassificationToDevice.TryGetValue(deviceClassification, out var oldDevice))
+            {
+                oldDevice.Disconnect();
             }
 
             var device = await DeviceFactory.GetDeviceAsync(
                 deviceName,
                 connectionProperties,
                 inputSubscriptions,
-                _deviceClassificationToDevice.Values.ToArray()
+                _deviceClassificationToDevice.Values.ToArray(),
+                this
             );
             _deviceClassificationToDevice.Add(device.GetClassification(), device);
+        }
 
-            return this;
+        public async Task AddTouchPanel(
+            string deviceName,
+            IDictionary<string, dynamic> connectionProperties = null,
+            IDictionary<TouchPanelZone, Action<TouchPanelZone, InputState>> inputSubscriptions = null
+        )
+        {
+            await AddDeviceByName
+            (
+                deviceName,
+                connectionProperties,
+                ConvertDictionary(inputSubscriptions),
+                DeviceClassification.TouchPanel
+            );
+        }
+
+        public async Task AddButtonRing(
+            string deviceName,
+            IDictionary<string, dynamic> connectionProperties = null,
+            IDictionary<ButtonRingZone, Action<ButtonRingZone, InputState>> inputSubscriptions = null
+        )
+        {
+            await AddDeviceByName
+            (
+                deviceName,
+                connectionProperties,
+                ConvertDictionary(inputSubscriptions),
+                DeviceClassification.ButtonRing
+            );
+        }
+
+        private IDictionary<Enum, Action<Enum, Enum>> ConvertDictionary<T1, T2>(IDictionary<T1, Action<T1, T2>> dictionary) where T1 : Enum where T2 : Enum
+        {
+            var newDict = new Dictionary<Enum, Action<Enum, Enum>>();
+            foreach (var kvp in dictionary)
+            {
+                newDict[kvp.Key] = (arg1, arg2) =>
+                    kvp.Value((T1)arg1, (T2)arg2);
+            }
+
+            return newDict;
+        }
+
+        public async Task WriteToDevice(DeviceClassification deviceClassification, Enum[] command)
+        {
+            if (_deviceClassificationToDevice.TryGetValue(deviceClassification, out var device) && device.IsConnected())
+            {
+                await device.Write(command);
+            }
         }
 
         public void Destroy()
@@ -54,58 +113,36 @@ namespace MychIO
             {
                 device.Disconnect();
             }
+            _deviceClassificationToDevice = new Dictionary<DeviceClassification, IDevice>();
+            _deviceClassificationToDeviceInputAction = new Dictionary<DeviceClassification, IDictionary<Enum, Action<Enum, Enum>>>();
+            _eventTypeToCallback = new Dictionary<IOEventType, ControllerEventDelegate>();
         }
 
-        /*
-                public AdxControllerDesktopObservable(
-                        IDictionary<TouchPanelZone, Action<TouchPanelZone, InteractionState>> touchPanelZoneToCallback,
-                        IDictionary<ButtonRingZone, Action<ButtonRingZone, InteractionState>> buttonRingZoneToCallback,
-                        IDictionary<ControllerEventType, ControllerEventDelegate> eventTypeToCallback,
-                        IDecoder<TouchPanelZone> touchPanelDecoder = null,
-                        IDecoder<ButtonRingZone> buttonRingDecoder = null
-                    ) : base(
-                            touchPanelZoneToCallback,
-                            buttonRingZoneToCallback,
-                            eventTypeToCallback,
-                            touchPanelDecoder,
-                            buttonRingDecoder
-                        )
-                { }
+        // Events
+        public void SubscribeToEvent(IOEventType eventType, ControllerEventDelegate callback)
+        {
+            _eventTypeToCallback[eventType] = callback;
+        }
 
-                public override void Destroy()
-                {
-                    foreach (var (_, device) in _deviceNameToDevice)
-                    {
-                        device.Detach();
-                    }
-                }
+        public void SubscribeToEvents(IDictionary<IOEventType, ControllerEventDelegate> eventSubscriptions)
+        {
+            // clone to prevent side effects
+            _eventTypeToCallback = new Dictionary<IOEventType, ControllerEventDelegate>(eventSubscriptions);
+        }
 
-                internal override ISerialDevice GetSerialDevice<T>(
-                    string deviceName,
-                    AdxControllerDevice deviceType,
-                    ConnectionProperties connectionProperties,
-                    IDecoder<T> decoder
-                 )
-                {
-                    return new DesktopSerialDevice<T>(
-                             adxControllerConnector: this,
-                             deviceName: deviceName,
-                             deviceType: deviceType,
-                             connectionProperties,
-                             decoder
-                         );
-                }
-
-                public override string[] GetUsbDeviceList()
-                {
-                    return SerialPort.GetPortNames();
-                }
-
-
-        #if UNITY_EDITOR
-                public override void SubscribeToDebugEvents(Action<string> callback) { }
-        #endif
-            */
+        public void handleEvent(
+            IOEventType eventType,
+            DeviceClassification deviceType = DeviceClassification.Undefined,
+            string message = "N/A"
+         )
+        {
+            if (!_eventTypeToCallback.TryGetValue(eventType, out ControllerEventDelegate eventDelegate))
+            {
+                return;
+            }
+            eventDelegate(eventType, deviceType, message);
+        }
 
     }
+
 }

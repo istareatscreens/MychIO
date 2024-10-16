@@ -9,14 +9,17 @@ namespace MychIO.Connection
     {
         protected IDevice _device;
         protected IConnectionProperties _connectionProperties;
+        protected IOManager _manager;
 
         public Connection(
             IDevice device,
-            IConnectionProperties connectionProperties
+            IConnectionProperties connectionProperties,
+            IOManager manager
          )
         {
             _device = device;
             _connectionProperties = connectionProperties;
+            _manager = manager;
         }
 
         public abstract Task Connect();
