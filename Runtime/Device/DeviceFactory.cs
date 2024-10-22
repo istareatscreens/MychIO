@@ -11,7 +11,8 @@ namespace MychIO.Device
         // Potentially replace this dictionary with Reflection
         private static Dictionary<string, Type> _deviceNameToType = new()
         {
-            { AdxTouchPanel.GetDeviceName(), typeof(AdxTouchPanel) }
+            { AdxTouchPanel.GetDeviceName(), typeof(AdxTouchPanel) },
+            { AdxIO4ButtonRing.GetDeviceName(), typeof(AdxIO4ButtonRing) }
             // Add other devices here...
         };
 

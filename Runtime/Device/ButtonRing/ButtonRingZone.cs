@@ -9,6 +9,10 @@ namespace MychIO.Device
         BA5,
         BA6,
         BA7,
-        BA8
+        BA8,
+        ArrowUp,
+        MiddleButton,
+        ArrowDown,
+        ButtonButton
     }
 }

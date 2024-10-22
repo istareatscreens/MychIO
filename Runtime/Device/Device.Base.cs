@@ -88,7 +88,10 @@ namespace MychIO.Device
 
         public abstract Task OnStartWrite();
 
+        // Making these methods virtual introduces overhead so
+        // just implement them in all devices objects
         public abstract void ReadData(byte[] data);
+        public abstract void ReadData(IntPtr data);
 
         public abstract Task Write(params Enum[] interactions);
 

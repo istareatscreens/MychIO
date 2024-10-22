@@ -23,7 +23,7 @@ namespace MychIO.Connection.SerialDevice
 
         public override Task Connect()
         {
-            if (!(_connectionProperties is SerialDeviceProperties))
+            if (_connectionProperties is not SerialDeviceProperties)
             {
                 throw new Exception("Invalid connection object passed to SerialDevice class");
             }

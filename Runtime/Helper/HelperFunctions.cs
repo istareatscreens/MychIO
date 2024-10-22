@@ -40,27 +40,6 @@ namespace MychIO.Helper
             return bitString.ToString();
         }
 
-        public static string formatAdxTouchPanelOutput(byte[] data)
-        {
-            return BytesToString(new byte[] { data[0] })
-              + " "
-              + ByteArrayToBitString(new byte[] { data[1] })
-              + " "
-              + ByteArrayToBitString(new byte[] { data[2] })
-              + " "
-              + ByteArrayToBitString(new byte[] { data[3] })
-              + " "
-              + ByteArrayToBitString(new byte[] { data[4] })
-              + " "
-              + ByteArrayToBitString(new byte[] { data[5] })
-              + " "
-              + ByteArrayToBitString(new byte[] { data[6] })
-              + " "
-              + ByteArrayToBitString(new byte[] { data[7] })
-              + " "
-              + BytesToString(new byte[] { data[8] })
-              ;
-        }
 
     }
 }

@@ -10,8 +10,8 @@ namespace MychIO.Device
     public interface IDevice : IIdentifier
     {
         void ResetState();
-        // TODO: create multiple read methods (likely dont want wrapper since its slower)
         void ReadData(byte[] data);
+        void ReadData(IntPtr data);
         Task OnStartWrite();
         Task<IDevice> Connect();
         void Disconnect();

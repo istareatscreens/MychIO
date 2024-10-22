@@ -1,8 +1,7 @@
 using System;
 using System.Collections.Generic;
 using System.Linq;
-using MychIO.Connection.HID;
-using MychIO.Connection.IO4;
+using MychIO.Connection.HidDevice;
 using MychIO.Connection.SerialDevice;
 using MychIO.Device;
 
@@ -13,8 +12,7 @@ namespace MychIO.Connection
         // Potentially replace this dictionary with Reflection
         private static Dictionary<ConnectionType, Type> _connectionTypeToConnection = new()
         {
-            { ConnectionType.IO4, typeof(HIDConnection) },
-            { ConnectionType.HID, typeof(IO4Connection) },
+            { ConnectionType.HID, typeof(HidDeviceConnection) },
             { ConnectionType.SerialDevice, typeof(SerialDeviceConnection) }
             // Add other connections here...
         };

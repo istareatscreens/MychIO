@@ -10,75 +10,33 @@ namespace MychIO.Device
 {
     public class AdxTouchPanel : Device<TouchPanelZone, InputState, SerialDeviceProperties>
     {
+        public const string DEVICE_NAME = "AdxTocuhPanel";
+
+        // ** Connection Properties -- Required by factory: 
+        public static new ConnectionType GetConnectionType() => ConnectionType.SerialDevice;
+        public static new DeviceClassification GetDeviceClassification() => DeviceClassification.TouchPanel;
+        public static new string GetDeviceName() => DEVICE_NAME;
+        public static new IConnectionProperties GetDefaultConnectionProperties() => new SerialDeviceProperties(
+            comPortNumber: "COM3",
+            writeTimeoutMS: SerialDeviceProperties.DEFAULT_WRITE_TIMEOUT_MS,
+            bufferByteLength: 9,
+            pollingRateMs: 10,
+            portNumber: 0,
+            baudRate: BaudRate.Bd9600,
+            stopBit: StopBits.One,
+            parityBit: Parity.None,
+            dataBits: DataBits.Eight,
+            handshake: Handshake.None,
+            dtr: false,
+            rts: false
+        );
+        // ** Connection Properties 
+
         private static readonly byte[] NO_INPUT_PACKET = new byte[]
         {
             0x28, 0x00, 0x00, 0x00,
             0x00, 0x00, 0x00, 0x00,
             0x29
-        };
-
-        // here mainly for reference
-        private static readonly IDictionary<int, IDictionary<TouchPanelZone, byte>> BYTE_MASKS = new Dictionary<int, IDictionary<TouchPanelZone, byte>>
-        {
-            { 2, new Dictionary<TouchPanelZone, byte>
-                {
-                    // Byte 0 (0x00) masks
-                    { TouchPanelZone.A1, 0b00000001 },
-                    { TouchPanelZone.A2, 0b00000010 },
-                    { TouchPanelZone.A3, 0b00000100 },
-                    { TouchPanelZone.A4, 0b00001000 },
-                    { TouchPanelZone.A5, 0b00010000 },
-                    { TouchPanelZone.A6, 0b00100000 },
-                    { TouchPanelZone.A7, 0b01000000 },
-                    { TouchPanelZone.A8, 0b10000000 },
-                }
-            },
-            { 3, new Dictionary<TouchPanelZone, byte>
-                {
-                    // Byte 1 (0x01) masks
-                    { TouchPanelZone.B1, 0b00000001 },
-                    { TouchPanelZone.B2, 0b00000010 },
-                    { TouchPanelZone.B3, 0b00000100 },
-                    { TouchPanelZone.B4, 0b00001000 },
-                    { TouchPanelZone.B5, 0b00010000 },
-                    { TouchPanelZone.B6, 0b00100000 },
-                    { TouchPanelZone.B7, 0b01000000 },
-                    { TouchPanelZone.B8, 0b10000000 },
-                }
-            },
-            { 4, new Dictionary<TouchPanelZone, byte>
-                {
-                    // Byte 2 (0x02) masks
-                    { TouchPanelZone.C1, 0b00000001 },
-                    { TouchPanelZone.C2, 0b00000010 },
-                }
-            },
-            { 5, new Dictionary<TouchPanelZone, byte>
-                {
-                    // Byte 3 (0x03) masks
-                    { TouchPanelZone.D1, 0b00000001 },
-                    { TouchPanelZone.D2, 0b00000010 },
-                    { TouchPanelZone.D3, 0b00000100 },
-                    { TouchPanelZone.D4, 0b00001000 },
-                    { TouchPanelZone.D5, 0b00010000 },
-                    { TouchPanelZone.D6, 0b00100000 },
-                    { TouchPanelZone.D7, 0b01000000 },
-                    { TouchPanelZone.D8, 0b10000000 },
-                }
-            },
-            { 6, new Dictionary<TouchPanelZone, byte>
-                {
-                    // Byte 4 (0x04) masks
-                    { TouchPanelZone.E1, 0b00000001 },
-                    { TouchPanelZone.E2, 0b00000010 },
-                    { TouchPanelZone.E3, 0b00000100 },
-                    { TouchPanelZone.E4, 0b00001000 },
-                    { TouchPanelZone.E5, 0b00010000 },
-                    { TouchPanelZone.E6, 0b00100000 },
-                    { TouchPanelZone.E7, 0b01000000 },
-                    { TouchPanelZone.E8, 0b10000000 },
-                }
-            }
         };
 
         private static readonly IDictionary<int, IDictionary<byte, TouchPanelZone>> BYTE_MASKS_TO_INPUT = new Dictionary<int, IDictionary<byte, TouchPanelZone>>
@@ -154,7 +112,6 @@ namespace MychIO.Device
             { TouchPanelCommand.Halt, new byte[]{ 0x7B, 0x48, 0x41, 0x4C, 0x54, 0x7D} },
         };
 
-        public const string ADX_TOUCH_PANEL = "AdxTocuhPanel";
 
         public AdxTouchPanel(
             IDictionary<Enum, Action<Enum, Enum>> inputSubscriptions,
@@ -163,23 +120,6 @@ namespace MychIO.Device
         ) : base(inputSubscriptions, connectionProperties, manager)
         { }
 
-        public static new ConnectionType GetConnectionType() => ConnectionType.SerialDevice;
-        public static new DeviceClassification GetDeviceClassification() => DeviceClassification.TouchPanel;
-        public static new string GetDeviceName() => ADX_TOUCH_PANEL;
-        public static new IConnectionProperties GetDefaultConnectionProperties() => new SerialDeviceProperties(
-            comPortNumber: "COM3",
-            writeTimeoutMS: SerialDeviceProperties.DEFAULT_WRITE_TIMEOUT_MS,
-            bufferByteLength: 9,
-            pollingRateMs: 10,
-            portNumber: 0,
-            baudRate: BaudRate.Bd9600,
-            stopBit: StopBits.One,
-            parityBit: Parity.None,
-            dataBits: DataBits.Eight,
-            handshake: Handshake.None,
-            dtr: false,
-            rts: false
-        );
 
         public override async Task OnStartWrite()
         {
@@ -199,6 +139,7 @@ namespace MychIO.Device
             {
                 return;
             }
+            // TODO: Microoptimize here we can store this as a member variable to prevent reallocation
             byte[] currentInput = new byte[9];
             Buffer.BlockCopy(data, data.Length - 9, currentInput, 0, 9);
             /* 
@@ -225,7 +166,7 @@ namespace MychIO.Device
                 foreach (var maskToInput in indexByteAndInput.Value)
                 {
                     var result = maskToInput.Key & currentInput[indexByteAndInput.Key];
-                    // TODO: microoptimize here maybe
+                    // TODO: microoptimize here maybe (we can store the previous computed state for faster access)
                     var previousResult = maskToInput.Key & _currentState[indexByteAndInput.Key];
                     if (previousResult == result)
                     {
@@ -270,6 +211,12 @@ namespace MychIO.Device
             return a1.SequenceEqual(a2);
         }
 
+        // Not used
+        public override void ReadData(IntPtr data)
+        {
+            throw new NotImplementedException();
+        }
+
 #if UNITY_EDITOR
         public static string formatAdxTouchPanelOutput(byte[] data)
         {
@@ -294,5 +241,4 @@ namespace MychIO.Device
         }
 #endif
     }
-
 }
