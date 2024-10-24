@@ -40,6 +40,10 @@ namespace MychIO.Helper
             return bitString.ToString();
         }
 
+        public static string ByteToBitString(byte b)
+        {
+            return Convert.ToString(b, 2).PadLeft(8, '0');
+        }
 
     }
 }

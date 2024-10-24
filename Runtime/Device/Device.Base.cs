@@ -9,6 +9,8 @@ namespace MychIO.Device
     // Important class cannot have more than 1 constructor (see Device Factory)
     public abstract partial class Device<T1, T2, T3> : IDevice<T1, T2> where T1 : Enum where T3 : IConnectionProperties where T2 : Enum
     {
+        protected const byte MOST_SIGNIFICANT_BIT = 0b10000000;
+        protected const byte LEAST_SIGNIFICANT_BIT = 0b00000001;
         private string _id;
         public string Id
         {

@@ -1,10 +1,20 @@
 using System;
 using System.Runtime.InteropServices;
+using PlasticPipe.PlasticProtocol.Messages;
+using UnityEditor;
 
 namespace MychIO.Connection.HidDevice
 {
+    [InitializeOnLoad]
     public static class UnityHidApiPlugin
     {
+
+        static UnityHidApiPlugin()
+        {
+            ReloadPlugin();
+        }
+
+
         // Define the callback delegates
         [UnmanagedFunctionPointer(CallingConvention.StdCall)]
         public delegate void DataCallbackDelegate(IntPtr data);
@@ -49,6 +59,11 @@ namespace MychIO.Connection.HidDevice
 
         [DllImport("UnityHidApiPlugin", CallingConvention = CallingConvention.Cdecl)]
         public static extern int PluginLoaded();
+
+        // This method should be called on program startup (To ensure all past pointers are released)
+        [DllImport("UnityHidApiPlugin", CallingConvention = CallingConvention.Cdecl)]
+        public static extern void ReloadPlugin();
+
 
     }
 }

@@ -49,6 +49,15 @@ namespace MychIO.Connection.HidDevice
                 properties.LeftBytesToTruncate,
                 properties.BytesToRead
             );
+            if (_pluginHandle == IntPtr.Zero)
+            {
+                manager.handleEvent(
+                    IOEventType.ConnectionError,
+                    _device.GetClassification(),
+                    "Error Initializing HID Connection plugin, please try again"
+                );
+                UnityHidApiPlugin.ReloadPlugin();
+            }
         }
 
         private void OnDestroy()
