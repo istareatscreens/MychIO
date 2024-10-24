@@ -6,6 +6,7 @@ using MychIO.Device;
 using MychIO.Event;
 using Unity.Collections;
 using Unity.Collections.LowLevel.Unsafe;
+using UnityEngine;
 
 namespace MychIO.Connection.HidDevice
 {
@@ -24,13 +25,29 @@ namespace MychIO.Connection.HidDevice
         {
             if (connectionProperties is not HidDeviceProperties)
             {
-                throw new Exception("Invalid connection object passed to SerialDevice class");
+                manager.handleEvent(
+                    IOEventType.ConnectionError,
+                        _device.GetClassification(),
+                        "Invalid property object passed to HidConnection"
+                );
             }
+
+            if (1 != UnityHidApiPlugin.PluginLoaded())
+            {
+                manager.handleEvent(
+                    IOEventType.ConnectionError,
+                        _device.GetClassification(),
+                        "Error loading UnityHidApiPlugin plugin"
+                );
+            }
+
             HidDeviceProperties properties = (HidDeviceProperties)connectionProperties;
             _pluginHandle = UnityHidApiPlugin.Initialize(
                 properties.VendorId,
                 properties.ProductId,
-                properties.BufferSize
+                properties.BufferSize,
+                properties.LeftBytesToTruncate,
+                properties.BytesToRead
             );
         }
 
@@ -67,18 +84,19 @@ namespace MychIO.Connection.HidDevice
 
         public override Task Connect()
         {
-            if (UnityHidApiPlugin.Connect(_pluginHandle))
-            {
-                _manager.handleEvent(IOEventType.ConnectionError, _device.GetClassification(), _device.GetType().ToString() + " Failed to Connect");
-            }
-
-            var dataRecievedCallback = new UnityHidApiPlugin.DataCallbackDelegate(_device.ReadData);
             var eventRecievedCallback = new UnityHidApiPlugin.EventCallbackDelegate(
                 (string message) =>
                 {
                     _manager.handleEvent(IOEventType.ConnectionError, _device.GetClassification(), _device.GetType().ToString() + " Error: " + message);
                 }
             );
+
+            if (UnityHidApiPlugin.Connect(_pluginHandle, eventRecievedCallback))
+            {
+                _manager.handleEvent(IOEventType.ConnectionError, _device.GetClassification(), _device.GetType().ToString() + " Failed to Connect");
+            }
+
+            var dataRecievedCallback = new UnityHidApiPlugin.DataCallbackDelegate(_device.ReadData);
 
             // prevent garbage collection of callbacks
             _dataCallbackHandle = GCHandle.Alloc(dataRecievedCallback);

@@ -212,7 +212,7 @@ namespace MychIO.Device
         }
 
         // Not used
-        public override void ReadData(IntPtr data)
+        public override void ReadData(IntPtr intPtr)
         {
             throw new NotImplementedException();
         }

@@ -11,8 +11,8 @@ namespace MychIO.Device
         BA7,
         BA8,
         ArrowUp,
-        MiddleButton,
+        Select,
         ArrowDown,
-        ButtonButton
+        InsertCoin
     }
 }

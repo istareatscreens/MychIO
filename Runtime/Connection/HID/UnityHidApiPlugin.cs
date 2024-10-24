@@ -11,12 +11,22 @@ namespace MychIO.Connection.HidDevice
         [UnmanagedFunctionPointer(CallingConvention.StdCall)]
         public delegate void EventCallbackDelegate(string message);
 
+
         // Import the functions from the C++ plugin DLL
         [DllImport("UnityHidApiPlugin", CallingConvention = CallingConvention.Cdecl)]
-        public static extern IntPtr Initialize(int vendorId, int productId, int bufferSize);
+        public static extern IntPtr Initialize(
+            int vendorId,
+            int productId,
+            int bufferSize,
+            int leftBytesToTruncate,
+            int bytesToRead
+        );
 
         [DllImport("UnityHidApiPlugin", CallingConvention = CallingConvention.Cdecl)]
-        public static extern bool Connect(IntPtr plugin);
+        public static extern bool Connect(
+            IntPtr plugin,
+            EventCallbackDelegate eventCallback
+        );
 
         [DllImport("UnityHidApiPlugin", CallingConvention = CallingConvention.Cdecl)]
         public static extern void Read(
@@ -32,11 +42,13 @@ namespace MychIO.Connection.HidDevice
         public static extern bool IsReading(IntPtr plugin);
 
         [DllImport("UnityHidApiPlugin", CallingConvention = CallingConvention.Cdecl)]
+        public static extern void Dispose(IntPtr plugin);
+
+        [DllImport("UnityHidApiPlugin", CallingConvention = CallingConvention.Cdecl)]
         public static extern bool Disconnect(IntPtr plugin);
 
-        // calls the objects destructor completely destorying it!
         [DllImport("UnityHidApiPlugin", CallingConvention = CallingConvention.Cdecl)]
-        public static extern void Dispose(IntPtr plugin);
+        public static extern int PluginLoaded();
 
     }
 }
