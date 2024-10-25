@@ -5,12 +5,58 @@ using System.Text;
 using System.Threading.Tasks;
 using MychIO.Connection;
 using MychIO.Connection.SerialDevice;
+using MychIO.Helper;
+using UnityEngine;
 
 namespace MychIO.Device
 {
     public class AdxTouchPanel : Device<TouchPanelZone, InputState, SerialDeviceProperties>
     {
+
+        /**
+            // Byte 0 = (
+            // Byte 1 
+             0b00000001, TouchPanelZone.A1 
+             0b00000010, TouchPanelZone.A2 
+             0b00000100, TouchPanelZone.A3 
+             0b00001000, TouchPanelZone.A4 
+             0b00010000, TouchPanelZone.A5 
+
+            // Byte 2 
+             0b00000001, TouchPanelZone.A6 
+             0b00000010, TouchPanelZone.A7 
+             0b00000100, TouchPanelZone.A8 
+             0b00001000, TouchPanelZone.B1 
+             0b00010000, TouchPanelZone.B2 
+
+            // Byte 3
+             0b00000001, TouchPanelZone.B3 
+             0b00000010, TouchPanelZone.B4 
+             0b00000100, TouchPanelZone.B5 
+             0b00001000, TouchPanelZone.B6 
+             0b00010000, TouchPanelZone.B7 
+            // Byte 4
+             0b00000001, TouchPanelZone.B8 
+             0b00000010, TouchPanelZone.C1 
+             0b00000100, TouchPanelZone.C2 
+             0b00001000, TouchPanelZone.D1 
+             0b00010000, TouchPanelZone.D2 
+
+            // Byte 5 (0x03) masks
+             0b00000001, TouchPanelZone.D3 
+             0b00000010, TouchPanelZone.D4 
+             0b00000100, TouchPanelZone.D5 
+             0b00001000, TouchPanelZone.D6 
+             0b00010000, TouchPanelZone.D7 
+            // Byte 6 (0x04) masks
+             0b10000001, TouchPanelZone.D8 
+             ...
+        */
+
         public const string DEVICE_NAME = "AdxTocuhPanel";
+
+        // Settings for microoptimization
+        public const int BYTES_TO_READ = 9;
 
         // ** Connection Properties -- Required by factory: 
         public static new ConnectionType GetConnectionType() => ConnectionType.SerialDevice;
@@ -39,71 +85,9 @@ namespace MychIO.Device
             0x29
         };
 
-        private static readonly IDictionary<int, IDictionary<byte, TouchPanelZone>> BYTE_MASKS_TO_INPUT = new Dictionary<int, IDictionary<byte, TouchPanelZone>>
-        {
-            { 1, new Dictionary<byte, TouchPanelZone>
-                {
-                    // Byte 0 (0x00) masks
-                    { 0b00000001, TouchPanelZone.A1 },
-                    { 0b00000010, TouchPanelZone.A2 },
-                    { 0b00000100, TouchPanelZone.A3 },
-                    { 0b00001000, TouchPanelZone.A4 },
-                    { 0b00010000, TouchPanelZone.A5 },
-                    { 0b00100000, TouchPanelZone.A6 },
-                    { 0b01000000, TouchPanelZone.A7 },
-                    { 0b10000000, TouchPanelZone.A8 },
-                }
-            },
-            { 2, new Dictionary<byte, TouchPanelZone>
-                {
-                    // Byte 1 (0x01) masks
-                    { 0b00000001, TouchPanelZone.B1 },
-                    { 0b00000010, TouchPanelZone.B2 },
-                    { 0b00000100, TouchPanelZone.B3 },
-                    { 0b00001000, TouchPanelZone.B4 },
-                    { 0b00010000, TouchPanelZone.B5 },
-                    { 0b00100000, TouchPanelZone.B6 },
-                    { 0b01000000, TouchPanelZone.B7 },
-                    { 0b10000000, TouchPanelZone.B8 },
-                }
-            },
-            { 3, new Dictionary<byte, TouchPanelZone>
-                {
-                    // Byte 2 (0x02) masks
-                    { 0b00000001, TouchPanelZone.C1 },
-                    { 0b00000010, TouchPanelZone.C2 },
-                }
-            },
-            { 4, new Dictionary<byte, TouchPanelZone>
-                {
-                    // Byte 3 (0x03) masks
-                    { 0b00000001, TouchPanelZone.D1 },
-                    { 0b00000010, TouchPanelZone.D2 },
-                    { 0b00000100, TouchPanelZone.D3 },
-                    { 0b00001000, TouchPanelZone.D4 },
-                    { 0b00010000, TouchPanelZone.D5 },
-                    { 0b00100000, TouchPanelZone.D6 },
-                    { 0b01000000, TouchPanelZone.D7 },
-                    { 0b10000000, TouchPanelZone.D8 },
-                }
-            },
-            { 5, new Dictionary<byte, TouchPanelZone>
-                {
-                    // Byte 4 (0x04) masks
-                    { 0b00000001, TouchPanelZone.E1 },
-                    { 0b00000010, TouchPanelZone.E2 },
-                    { 0b00000100, TouchPanelZone.E3 },
-                    { 0b00001000, TouchPanelZone.E4 },
-                    { 0b00010000, TouchPanelZone.E5 },
-                    { 0b00100000, TouchPanelZone.E6 },
-                    { 0b01000000, TouchPanelZone.E7 },
-                    { 0b10000000, TouchPanelZone.E8 },
-                }
-            }
-        };
-
         private byte[] _currentState = NO_INPUT_PACKET;
-        private int[] _currentActiveStates = new int[34];
+        //private byte[] _currentInput = new byte[BYTES_TO_READ];
+        private IDictionary<TouchPanelZone, bool> _currentActiveStates;
 
         public static readonly IDictionary<TouchPanelCommand, byte[]> Commands = new Dictionary<TouchPanelCommand, byte[]>
         {
@@ -112,14 +96,19 @@ namespace MychIO.Device
             { TouchPanelCommand.Halt, new byte[]{ 0x7B, 0x48, 0x41, 0x4C, 0x54, 0x7D} },
         };
 
-
         public AdxTouchPanel(
             IDictionary<Enum, Action<Enum, Enum>> inputSubscriptions,
             IDictionary<string, dynamic> connectionProperties = null,
             IOManager manager = null
         ) : base(inputSubscriptions, connectionProperties, manager)
-        { }
-
+        {
+            // current states
+            _currentActiveStates = new Dictionary<TouchPanelZone, bool>();
+            foreach (TouchPanelZone zone in Enum.GetValues(typeof(TouchPanelZone)))
+            {
+                _currentActiveStates[zone] = false;
+            }
+        }
 
         public override async Task OnStartWrite()
         {
@@ -139,48 +128,100 @@ namespace MychIO.Device
             {
                 return;
             }
-            // TODO: Microoptimize here we can store this as a member variable to prevent reallocation
-            byte[] currentInput = new byte[9];
+
+            byte[] currentInput = new byte[BYTES_TO_READ];
+
             Buffer.BlockCopy(data, data.Length - 9, currentInput, 0, 9);
-            /* 
-                if the current state has no state And
-                the newest packet also contains no new input And
-                currentState is the same as the data being passed 
-                then nothing to do
-            */
-            if (
-                ByteArraysEqual(currentInput, _currentState)
-            )
+
+            if (ByteArraysEqual(_currentState, currentInput))
             {
                 return;
             }
 
-            foreach (var indexByteAndInput in BYTE_MASKS_TO_INPUT)
-            {
-                // No change in state from previous record for this zone so skip it
-                if (currentInput[indexByteAndInput.Key] == _currentState[indexByteAndInput.Key])
-                {
-                    continue;
-                }
+            Debug.Log(formatAdxTouchPanelOutput(currentInput));
 
-                foreach (var maskToInput in indexByteAndInput.Value)
-                {
-                    var result = maskToInput.Key & currentInput[indexByteAndInput.Key];
-                    // TODO: microoptimize here maybe (we can store the previous computed state for faster access)
-                    var previousResult = maskToInput.Key & _currentState[indexByteAndInput.Key];
-                    if (previousResult == result)
-                    {
-                        continue;
-                    }
-                    //_manager.handleEvent(Event.IOEventType.Debug, DeviceClassification.TouchPanel, maskToInput.ToString() + " | " + HelperFunctions.formatAdxTouchPanelOutput(data));
-                    _inputSubscriptions.TryGetValue(maskToInput.Value, out var callback);
-                    callback(maskToInput.Value, 1 == result ? InputState.On : InputState.Off);
-                }
+            if (currentInput[1] != _currentState[1])
+            {
+                handleInputChange(TouchPanelZone.A1, (currentInput[1] & 0b00000001) != 0);
+                handleInputChange(TouchPanelZone.A2, (currentInput[1] & 0b00000010) != 0);
+                handleInputChange(TouchPanelZone.A3, (currentInput[1] & 0b00000100) != 0);
+                handleInputChange(TouchPanelZone.A4, (currentInput[1] & 0b00001000) != 0);
+                handleInputChange(TouchPanelZone.A5, (currentInput[1] & 0b00010000) != 0);
+            }
+
+            if (currentInput[2] != _currentState[2])
+            {
+                handleInputChange(TouchPanelZone.A6, (currentInput[2] & 0b00000001) != 0);
+                handleInputChange(TouchPanelZone.A7, (currentInput[2] & 0b00000010) != 0);
+                handleInputChange(TouchPanelZone.A8, (currentInput[2] & 0b00000100) != 0);
+                handleInputChange(TouchPanelZone.B1, (currentInput[2] & 0b00001000) != 0);
+                handleInputChange(TouchPanelZone.B2, (currentInput[2] & 0b00010000) != 0);
+
 
             }
+
+            if (currentInput[3] != _currentState[3])
+            {
+                handleInputChange(TouchPanelZone.B3, (currentInput[3] & 0b00000001) != 0);
+                handleInputChange(TouchPanelZone.B4, (currentInput[3] & 0b00000010) != 0);
+                handleInputChange(TouchPanelZone.B5, (currentInput[3] & 0b00000100) != 0);
+                handleInputChange(TouchPanelZone.B6, (currentInput[3] & 0b00001000) != 0);
+                handleInputChange(TouchPanelZone.B7, (currentInput[3] & 0b00010000) != 0);
+
+            }
+
+            if (currentInput[4] != _currentState[4])
+            {
+                handleInputChange(TouchPanelZone.B8, (currentInput[4] & 0b00000001) != 0);
+                handleInputChange(TouchPanelZone.C1, (currentInput[4] & 0b00000010) != 0);
+                handleInputChange(TouchPanelZone.C2, (currentInput[4] & 0b00000100) != 0);
+                handleInputChange(TouchPanelZone.D1, (currentInput[4] & 0b00001000) != 0);
+                handleInputChange(TouchPanelZone.D2, (currentInput[4] & 0b00010000) != 0);
+
+            }
+
+            if (currentInput[5] != _currentState[5])
+            {
+                handleInputChange(TouchPanelZone.D3, (currentInput[5] & 0b00000001) != 0);
+                handleInputChange(TouchPanelZone.D4, (currentInput[5] & 0b00000010) != 0);
+                handleInputChange(TouchPanelZone.D5, (currentInput[5] & 0b00000100) != 0);
+                handleInputChange(TouchPanelZone.D6, (currentInput[5] & 0b00001000) != 0);
+                handleInputChange(TouchPanelZone.D7, (currentInput[5] & 0b00010000) != 0);
+
+            }
+            if (currentInput[6] != _currentState[6])
+            {
+                handleInputChange(TouchPanelZone.D8, (currentInput[6] & 0b00000001) != 0);
+                handleInputChange(TouchPanelZone.E1, (currentInput[6] & 0b00000010) != 0);
+                handleInputChange(TouchPanelZone.E2, (currentInput[6] & 0b00000100) != 0);
+                handleInputChange(TouchPanelZone.E3, (currentInput[6] & 0b00001000) != 0);
+                handleInputChange(TouchPanelZone.E4, (currentInput[6] & 0b00010000) != 0);
+            }
+
+            if (currentInput[7] != _currentState[7])
+            {
+                handleInputChange(TouchPanelZone.E5, (currentInput[7] & 0b00000001) != 0);
+                handleInputChange(TouchPanelZone.E6, (currentInput[7] & 0b00000010) != 0);
+                handleInputChange(TouchPanelZone.E7, (currentInput[7] & 0b00000100) != 0);
+                handleInputChange(TouchPanelZone.E8, (currentInput[7] & 0b00001000) != 0);
+            }
+
             _currentState = currentInput;
-            //_manager.handleEvent(Event.IOEventType.Debug, GetDeviceClassification(), Encoding.ASCII.GetString(data).Trim().Replace("\0", "_"));
         }
+
+        private void handleInputChange(TouchPanelZone zone, bool result)
+        {
+            _currentActiveStates.TryGetValue(zone, out var currentActiveState);
+            if (result == currentActiveState)
+            {
+                return;
+            }
+            _inputSubscriptions.TryGetValue(zone, out var callback);
+            var newState = currentActiveState ? InputState.Off : InputState.On;
+            callback(zone, newState);
+            _currentActiveStates[zone] = !currentActiveState;
+        }
+
 
         public override void ResetState()
         {
@@ -222,19 +263,19 @@ namespace MychIO.Device
         {
             return Helper.HelperFunctions.BytesToString(new byte[] { data[0] })
               + " "
-              + Helper.HelperFunctions.ByteArrayToBitString(new byte[] { data[1] })
+              + Helper.HelperFunctions.ByteToBitString(data[1])
               + " "
-              + Helper.HelperFunctions.ByteArrayToBitString(new byte[] { data[2] })
+              + Helper.HelperFunctions.ByteToBitString(data[2])
               + " "
-              + Helper.HelperFunctions.ByteArrayToBitString(new byte[] { data[3] })
+              + Helper.HelperFunctions.ByteToBitString(data[3])
               + " "
-              + Helper.HelperFunctions.ByteArrayToBitString(new byte[] { data[4] })
+              + Helper.HelperFunctions.ByteToBitString(data[4])
               + " "
-              + Helper.HelperFunctions.ByteArrayToBitString(new byte[] { data[5] })
+              + Helper.HelperFunctions.ByteToBitString(data[5])
               + " "
-              + Helper.HelperFunctions.ByteArrayToBitString(new byte[] { data[6] })
+              + Helper.HelperFunctions.ByteToBitString(data[6])
               + " "
-              + Helper.HelperFunctions.ByteArrayToBitString(new byte[] { data[7] })
+              + Helper.HelperFunctions.ByteToBitString(data[7])
               + " "
               + Helper.HelperFunctions.BytesToString(new byte[] { data[8] })
               ;

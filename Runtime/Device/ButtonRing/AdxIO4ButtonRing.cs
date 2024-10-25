@@ -58,22 +58,8 @@ namespace MychIO.Device
             0x00,0x02,0x00,0x0D,0xF8
         };
         private byte[] _currentState = NO_INPUT_PACKET;
-        private IDictionary<ButtonRingZone, bool> _currentActiveStates = new Dictionary<ButtonRingZone, bool>
-        {
-            { ButtonRingZone.BA1, false },
-            { ButtonRingZone.BA2, false },
-            { ButtonRingZone.BA3, false },
-            { ButtonRingZone.BA4, false },
-            { ButtonRingZone.BA5, false },
-            { ButtonRingZone.BA6, false },
-            { ButtonRingZone.BA7, false },
-            { ButtonRingZone.BA8, false },
-            { ButtonRingZone.ArrowUp, false },
-            { ButtonRingZone.Select, false },
-            { ButtonRingZone.ArrowDown, false },
-            { ButtonRingZone.InsertCoin, false },
-        };
-
+        private byte[] _currentInput = new byte[BYTES_TO_READ];
+        private IDictionary<ButtonRingZone, bool> _currentActiveStates;
         public static readonly IDictionary<TouchPanelCommand, byte[]> Commands = new Dictionary<TouchPanelCommand, byte[]>
         {
             { TouchPanelCommand.Start, new byte[]{ 0x7B, 0x53, 0x54, 0x41, 0x54, 0x7D } },
@@ -86,7 +72,14 @@ namespace MychIO.Device
             IDictionary<string, dynamic> connectionProperties = null,
             IOManager manager = null
         ) : base(inputSubscriptions, connectionProperties, manager)
-        { }
+        {
+            // current states
+            _currentActiveStates = new Dictionary<ButtonRingZone, bool>();
+            foreach (ButtonRingZone zone in Enum.GetValues(typeof(ButtonRingZone)))
+            {
+                _currentActiveStates[zone] = false;
+            }
+        }
 
         public override void ResetState()
         {
@@ -139,13 +132,13 @@ namespace MychIO.Device
 
                 handleInputChange(ButtonRingZone.BA3, (InvertedByte3 & LEAST_SIGNIFICANT_BIT) != 0);
 
-                handleInputChange(ButtonRingZone.ArrowUp, ((currentInput[3] >> 1) & LEAST_SIGNIFICANT_BIT) != 0);
+                handleInputChange(ButtonRingZone.ArrowUp, ((currentInput[3]) & 0b00000010) != 0);
 
-                handleInputChange(ButtonRingZone.BA1, ((InvertedByte3 >> 2) & LEAST_SIGNIFICANT_BIT) != 0);
+                handleInputChange(ButtonRingZone.BA1, ((InvertedByte3) & 0b00000100) != 0);
 
-                handleInputChange(ButtonRingZone.BA2, ((InvertedByte3 >> 3) & LEAST_SIGNIFICANT_BIT) != 0);
+                handleInputChange(ButtonRingZone.BA2, ((InvertedByte3) & 0b00001000) != 0);
 
-                handleInputChange(ButtonRingZone.ArrowDown, ((currentInput[3] << 1) & MOST_SIGNIFICANT_BIT) != 0);
+                handleInputChange(ButtonRingZone.ArrowDown, ((currentInput[3]) & 0b01000000) != 0);
             }
 
             /*
@@ -163,17 +156,16 @@ namespace MychIO.Device
 
                 handleInputChange(ButtonRingZone.BA4, (InvertedByte4 & MOST_SIGNIFICANT_BIT) != 0);
 
-                handleInputChange(ButtonRingZone.BA5, ((InvertedByte4 << 1) & MOST_SIGNIFICANT_BIT) != 0);
+                handleInputChange(ButtonRingZone.BA5, ((InvertedByte4) & 0b01000000) != 0);
 
-                handleInputChange(ButtonRingZone.BA6, ((InvertedByte4 << 2) & MOST_SIGNIFICANT_BIT) != 0);
+                handleInputChange(ButtonRingZone.BA6, ((InvertedByte4) & 0b00100000) != 0);
 
-                handleInputChange(ButtonRingZone.BA7, ((InvertedByte4 << 3) & MOST_SIGNIFICANT_BIT) != 0);
+                handleInputChange(ButtonRingZone.BA7, ((InvertedByte4) & 0b00010000) != 0);
 
-                handleInputChange(ButtonRingZone.BA8, ((InvertedByte4 << 4) & MOST_SIGNIFICANT_BIT) != 0);
+                handleInputChange(ButtonRingZone.BA8, ((InvertedByte4) & 0b00001000) != 0);
 
-                handleInputChange(ButtonRingZone.Select, ((currentInput[4] >> 1) & LEAST_SIGNIFICANT_BIT) != 0);
+                handleInputChange(ButtonRingZone.Select, ((currentInput[4]) & 0b00000010) != 0);
             }
-
 
             // coin -> byte 0 (00000001)
             if (_currentState[0] != currentInput[0])
