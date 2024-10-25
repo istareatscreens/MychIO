@@ -58,6 +58,12 @@ namespace MychIO.Connection.HidDevice
         public static extern bool Disconnect(IntPtr plugin);
 
         [DllImport("UnityHidApiPlugin", CallingConvention = CallingConvention.Cdecl)]
+        public static extern bool StopReading(IntPtr plugin);
+
+
+        // Plugin control
+
+        [DllImport("UnityHidApiPlugin", CallingConvention = CallingConvention.Cdecl)]
         public static extern int PluginLoaded();
 
         // This method should be called on program startup (To ensure all past pointers are released)

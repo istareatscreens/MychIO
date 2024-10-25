@@ -6,6 +6,7 @@ using MychIO.Device;
 using MychIO.Event;
 using Unity.Collections;
 using Unity.Collections.LowLevel.Unsafe;
+using UnityEditor.Build;
 using UnityEngine;
 
 namespace MychIO.Connection.HidDevice
@@ -110,12 +111,7 @@ namespace MychIO.Connection.HidDevice
             // prevent garbage collection of callbacks
             _dataCallbackHandle = GCHandle.Alloc(dataRecievedCallback);
             _eventCallbackHandle = GCHandle.Alloc(eventRecievedCallback);
-            UnityHidApiPlugin.Read(_pluginHandle, dataRecievedCallback, eventRecievedCallback);
-
-            if (!UnityHidApiPlugin.IsReading(_pluginHandle))
-            {
-                _manager.handleEvent(IOEventType.ConnectionError, _device.GetClassification(), _device.GetType().ToString() + " Error: failed to start reading from device");
-            }
+            Read();
 
             _manager.handleEvent(IOEventType.Attach, _device.GetClassification(), _device.GetType().ToString() + " Device is running properly");
 
@@ -140,5 +136,32 @@ namespace MychIO.Connection.HidDevice
             throw new NotImplementedException("Writing to a HID device is not currently implemented");
         }
 
+        public override bool IsReading()
+        {
+            return UnityHidApiPlugin.IsReading(_pluginHandle);
+        }
+
+        public override void Read()
+        {
+            if (!IsReading() && null != _pluginHandle)
+            {
+                var dataCallback = (UnityHidApiPlugin.DataCallbackDelegate)_dataCallbackHandle.Target;
+                var eventCallback = (UnityHidApiPlugin.EventCallbackDelegate)_eventCallbackHandle.Target;
+                UnityHidApiPlugin.Read(_pluginHandle, dataCallback, eventCallback);
+            }
+
+            if (!UnityHidApiPlugin.IsReading(_pluginHandle))
+            {
+                _manager.handleEvent(IOEventType.ConnectionError, _device.GetClassification(), _device.GetType().ToString() + " Error: failed to start reading from device");
+            }
+        }
+
+        public override void StopReading()
+        {
+            if (IsReading())
+            {
+                UnityHidApiPlugin.StopReading(_pluginHandle);
+            }
+        }
     }
 }

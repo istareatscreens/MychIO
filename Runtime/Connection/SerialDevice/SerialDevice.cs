@@ -13,7 +13,7 @@ namespace MychIO.Connection.SerialDevice
         private SerialPort _serialPort;
         private int _pollTimeoutMs;
         private int _bufferByteLength;
-        private readonly CancellationTokenSource _cancellationTokenSource = new CancellationTokenSource();
+        private CancellationTokenSource _cancellationTokenSource = new CancellationTokenSource();
 
         public SerialDeviceConnection(IDevice device, IConnectionProperties connectionProperties, IOManager manager) :
          base(device, connectionProperties, manager)
@@ -96,7 +96,10 @@ namespace MychIO.Connection.SerialDevice
         public override void Disconnect()
         {
             _device.ResetState();
-            StopReadPolling();
+            if (IsReading())
+            {
+                StopReadPolling();
+            }
             if (IsConnected())
             {
                 _serialPort.Close();
@@ -122,6 +125,29 @@ namespace MychIO.Connection.SerialDevice
               ((SerialDeviceProperties)_connectionProperties).ComPortNumber;
         }
 
+        public override bool IsReading()
+        {
+            return !_cancellationTokenSource.Token.IsCancellationRequested;
+        }
+
+        public override void Read()
+        {
+            if (!IsReading())
+            {
+                _cancellationTokenSource.Dispose(); // Dispose the old one if it's not null
+                _cancellationTokenSource = new CancellationTokenSource();
+                Task.Run(async () =>
+                {
+                    await _device.OnStartWrite();
+                    await RecieveData();
+                });
+            }
+        }
+
+        public override void StopReading()
+        {
+            StopReadPolling();
+        }
     }
 
 }

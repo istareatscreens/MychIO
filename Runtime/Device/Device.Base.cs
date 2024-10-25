@@ -90,6 +90,36 @@ namespace MychIO.Device
 
         public abstract Task OnStartWrite();
 
+        Task IDevice<T1, T2>.SetInputCallbacks(IDictionary<T1, Action<T1, T2>> inputSubscriptions)
+        {
+            // To prevent side effects due to threading reading will be halted temporarily to load new callbacks
+            StopReading();
+            _inputSubscriptions = inputSubscriptions;
+            StartReading();
+            return Task.CompletedTask;
+        }
+
+        public bool IsReading()
+        {
+            return _connection.IsReading();
+        }
+
+        public void StopReading()
+        {
+            if (IsReading())
+            {
+                _connection.StopReading();
+            }
+        }
+
+        public void StartReading()
+        {
+            if (!IsReading())
+            {
+                _connection.Read();
+            }
+        }
+
         // Making these methods virtual introduces overhead so
         // just implement them in all devices objects
         public abstract void ReadData(byte[] data);

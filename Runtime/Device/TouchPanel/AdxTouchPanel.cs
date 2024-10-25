@@ -1,5 +1,6 @@
 using System;
 using System.Collections.Generic;
+using System.Data;
 using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
@@ -89,11 +90,11 @@ namespace MychIO.Device
         //private byte[] _currentInput = new byte[BYTES_TO_READ];
         private IDictionary<TouchPanelZone, bool> _currentActiveStates;
 
-        public static readonly IDictionary<TouchPanelCommand, byte[]> Commands = new Dictionary<TouchPanelCommand, byte[]>
+        public static readonly IDictionary<TouchPanelCommand, byte[][]> Commands = new Dictionary<TouchPanelCommand, byte[][]>
         {
-            { TouchPanelCommand.Start, new byte[]{ 0x7B, 0x53, 0x54, 0x41, 0x54, 0x7D } },
-            { TouchPanelCommand.Reset, new byte[]{0x7B, 0x52, 0x53, 0x45, 0x54, 0x7D} },
-            { TouchPanelCommand.Halt, new byte[]{ 0x7B, 0x48, 0x41, 0x4C, 0x54, 0x7D} },
+            { TouchPanelCommand.Start, new byte[][] { new byte[] { 0x7B, 0x53, 0x54, 0x41, 0x54, 0x7D } } },
+            { TouchPanelCommand.Reset, new byte[][] { new byte[] { 0x7B, 0x52, 0x53, 0x45, 0x54, 0x7D } } },
+            { TouchPanelCommand.Halt, new byte[][] { new byte[] { 0x7B, 0x48, 0x41, 0x4C, 0x54, 0x7D } } },
         };
 
         public AdxTouchPanel(
@@ -113,6 +114,7 @@ namespace MychIO.Device
         public override async Task OnStartWrite()
         {
             await Write(TouchPanelCommand.Reset, TouchPanelCommand.Halt);
+            // Calibration
             for (byte a = 0x41; a <= 0x62; a++)
             {
                 await _connection.Write(Encoding.UTF8.GetBytes("{L" + (char)a + "r2}"));
@@ -137,8 +139,6 @@ namespace MychIO.Device
             {
                 return;
             }
-
-            Debug.Log(formatAdxTouchPanelOutput(currentInput));
 
             if (currentInput[1] != _currentState[1])
             {
@@ -233,7 +233,7 @@ namespace MychIO.Device
             var commandBytes = interactions.OfType<TouchPanelCommand>()
             .SelectMany(command =>
             {
-                if (Commands.TryGetValue(command, out byte[] bytes))
+                if (Commands.TryGetValue(command, out byte[][] bytes))
                 {
                     return bytes;
                 }
@@ -243,7 +243,10 @@ namespace MychIO.Device
                 }
             }).ToArray();
 
-            await _connection.Write(commandBytes);
+            foreach (var command in commandBytes)
+            {
+                await _connection.Write(command);
+            }
         }
 
         // source: https://stackoverflow.com/a/48599119

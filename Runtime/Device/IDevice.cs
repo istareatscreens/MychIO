@@ -16,17 +16,20 @@ namespace MychIO.Device
         Task<IDevice> Connect();
         void Disconnect();
         bool IsConnected();
+        bool IsReading();
+        void StopReading();
+        void StartReading();
         bool CanConnect(IDevice device);
         IConnection GetConnection();
         Task Write(params Enum[] interactions);
         DeviceClassification GetClassification();
     }
-    // Where T is the input type, e.g. A1
+    // Where T1 is the input type, e.g. A1, and T2 is the InputState
     interface IDevice<T1, T2> : IDevice where T1 : Enum where T2 : Enum
     {
         IConnectionProperties GetConnectionProperties();
         // Callback has parameters Input Type, and Interaction State (e.g. On/Off) respectively
-        void SetInputCallbacks(IDictionary<T1, Action<T1, T2>> inputSubscriptions);
+        Task SetInputCallbacks(IDictionary<T1, Action<T1, T2>> inputSubscriptions);
         void AddInputCallback(T1 interactionZone, Action<T1, T2> callback);
 
     }

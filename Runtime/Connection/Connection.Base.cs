@@ -36,6 +36,12 @@ namespace MychIO.Connection
         // all devices connected are passed to this method so you must check instance type!
         public abstract bool CanConnect(IConnection connectionProperties);
 
+        public abstract bool IsReading();
+
+        public abstract void Read();
+
+        public abstract void StopReading();
+
     }
 
 }
