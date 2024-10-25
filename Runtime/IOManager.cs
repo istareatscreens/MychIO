@@ -156,7 +156,23 @@ namespace MychIO
             AddDeviceInputSubscriptionsToTagMap(inputSubscriptions, DeviceClassification.ButtonRing, tag);
         }
 
-        public async Task ChangeDeviceInputSubscription<T1, T2>(
+        public void ChangeTouchPanelInputSubscriptions(string tag)
+        {
+            Task.Run(async () =>
+            {
+                await ChangeDeviceInputSubscription<TouchPanelZone, InputState>(DeviceClassification.TouchPanel, tag);
+            });
+        }
+
+        public void ChangeButtonRingInputSubscriptions(string tag)
+        {
+            Task.Run(async () =>
+            {
+                await ChangeDeviceInputSubscription<ButtonRingZone, InputState>(DeviceClassification.TouchPanel, tag);
+            });
+        }
+
+        private async Task ChangeDeviceInputSubscription<T1, T2>(
             DeviceClassification deviceClassification,
             string tag
             ) where T1 : Enum where T2 : Enum
