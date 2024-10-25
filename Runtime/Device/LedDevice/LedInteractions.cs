@@ -6,7 +6,8 @@ namespace MychIO.Device
 
     }
 
-    public enum LEDMessage{
+    public enum LedMessage
+    {
     }
 
 }

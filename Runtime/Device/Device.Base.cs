@@ -45,6 +45,14 @@ namespace MychIO.Device
             _manager = manager;
         }
 
+        private void OnDestroy()
+        {
+            Task.Run(() =>
+            {
+                _connection.Disconnect();
+            });
+        }
+
         public IConnectionProperties GetConnectionProperties() => _connectionProperties;
 
         public void SetInputCallbacks(IDictionary<T1, Action<T1, T2>> inputSubscriptions)
@@ -62,9 +70,9 @@ namespace MychIO.Device
             await _connection.Connect();
             return (IDevice)this;
         }
-        public void Disconnect()
+        public async Task Disconnect()
         {
-            _connection.Disconnect();
+            await _connection.Disconnect();
         }
 
         public bool IsConnected()
@@ -89,6 +97,8 @@ namespace MychIO.Device
         public abstract void ResetState();
 
         public abstract Task OnStartWrite();
+
+        public abstract Task OnDisconnectWrite();
 
         Task IDevice<T1, T2>.SetInputCallbacks(IDictionary<T1, Action<T1, T2>> inputSubscriptions)
         {

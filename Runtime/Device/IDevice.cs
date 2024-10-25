@@ -13,8 +13,9 @@ namespace MychIO.Device
         void ReadData(byte[] data);
         void ReadData(IntPtr intPtr);
         Task OnStartWrite();
+        Task OnDisconnectWrite();
         Task<IDevice> Connect();
-        void Disconnect();
+        Task Disconnect();
         bool IsConnected();
         bool IsReading();
         void StopReading();

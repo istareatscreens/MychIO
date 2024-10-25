@@ -6,6 +6,5 @@ namespace MychIO.Device
         Halt,
         Reset,
         Ratio,
-
     }
 }

@@ -4,7 +4,7 @@ namespace MychIO.Connection
 {
     public interface IConnection
     {
-        void Disconnect();
+        Task Disconnect();
         Task Connect();
         bool IsConnected();
         bool CanConnect(IConnection connection);

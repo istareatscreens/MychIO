@@ -4,8 +4,8 @@ namespace MychIO.Device
     {
         TouchPanel,
         ButtonRing,
-        ButtonLed,
-        // Used exclusively for events
-        Undefined
+        LedDevice,
+        // Used exclusively for events not specific to a device
+        Undefined,
     }
 }

@@ -25,7 +25,7 @@ namespace MychIO.Connection
 
         public abstract Task Connect();
 
-        public abstract void Disconnect();
+        public abstract Task Disconnect();
 
         public abstract bool IsConnected();
 

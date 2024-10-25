@@ -55,7 +55,7 @@ namespace MychIO
 
             if (_deviceClassificationToDevice.TryGetValue(deviceClassification, out var oldDevice))
             {
-                oldDevice.Disconnect();
+                await oldDevice.Disconnect();
             }
 
             var device = await DeviceFactory.GetDeviceAsync(
@@ -230,7 +230,7 @@ namespace MychIO
 
         }
 
-        // All Enum States must be accounted for, could potentially replace them with empty callbacks in the future
+        // All Enum otates must be accounted for, could potentially replace them with empty callbacks in the future
         // Instead of throwing an error
         private void EnsureAllInputStatesAreAccountedFor<T1, T2>(IDictionary<T1, Action<T1, T2>> inputSubscriptions)
          where T1 : Enum where T2 : Enum

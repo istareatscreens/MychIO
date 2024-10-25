@@ -2,6 +2,7 @@ using System;
 using System.Collections.Generic;
 using System.Data;
 using System.Linq;
+using System.Runtime.CompilerServices;
 using System.Text;
 using System.Threading.Tasks;
 using MychIO.Connection;
@@ -54,7 +55,7 @@ namespace MychIO.Device
              ...
         */
 
-        public const string DEVICE_NAME = "AdxTocuhPanel";
+        public const string DEVICE_NAME = "AdxTouchPanel";
 
         // Settings for microoptimization
         public const int BYTES_TO_READ = 9;
@@ -142,84 +143,84 @@ namespace MychIO.Device
 
             if (currentInput[1] != _currentState[1])
             {
-                handleInputChange(TouchPanelZone.A1, (currentInput[1] & 0b00000001) != 0);
-                handleInputChange(TouchPanelZone.A2, (currentInput[1] & 0b00000010) != 0);
-                handleInputChange(TouchPanelZone.A3, (currentInput[1] & 0b00000100) != 0);
-                handleInputChange(TouchPanelZone.A4, (currentInput[1] & 0b00001000) != 0);
-                handleInputChange(TouchPanelZone.A5, (currentInput[1] & 0b00010000) != 0);
+                handleInputChange(TouchPanelZone.A1, currentInput[1], 0b00000001);
+                handleInputChange(TouchPanelZone.A2, currentInput[1], 0b00000010);
+                handleInputChange(TouchPanelZone.A3, currentInput[1], 0b00000100);
+                handleInputChange(TouchPanelZone.A4, currentInput[1], 0b00001000);
+                handleInputChange(TouchPanelZone.A5, currentInput[1], 0b00010000);
             }
 
             if (currentInput[2] != _currentState[2])
             {
-                handleInputChange(TouchPanelZone.A6, (currentInput[2] & 0b00000001) != 0);
-                handleInputChange(TouchPanelZone.A7, (currentInput[2] & 0b00000010) != 0);
-                handleInputChange(TouchPanelZone.A8, (currentInput[2] & 0b00000100) != 0);
-                handleInputChange(TouchPanelZone.B1, (currentInput[2] & 0b00001000) != 0);
-                handleInputChange(TouchPanelZone.B2, (currentInput[2] & 0b00010000) != 0);
+                handleInputChange(TouchPanelZone.A6, currentInput[2], 0b00000001);
+                handleInputChange(TouchPanelZone.A7, currentInput[2], 0b00000010);
+                handleInputChange(TouchPanelZone.A8, currentInput[2], 0b00000100);
+                handleInputChange(TouchPanelZone.B1, currentInput[2], 0b00001000);
+                handleInputChange(TouchPanelZone.B2, currentInput[2], 0b00010000);
 
 
             }
 
             if (currentInput[3] != _currentState[3])
             {
-                handleInputChange(TouchPanelZone.B3, (currentInput[3] & 0b00000001) != 0);
-                handleInputChange(TouchPanelZone.B4, (currentInput[3] & 0b00000010) != 0);
-                handleInputChange(TouchPanelZone.B5, (currentInput[3] & 0b00000100) != 0);
-                handleInputChange(TouchPanelZone.B6, (currentInput[3] & 0b00001000) != 0);
-                handleInputChange(TouchPanelZone.B7, (currentInput[3] & 0b00010000) != 0);
+                handleInputChange(TouchPanelZone.B3, currentInput[3], 0b00000001);
+                handleInputChange(TouchPanelZone.B4, currentInput[3], 0b00000010);
+                handleInputChange(TouchPanelZone.B5, currentInput[3], 0b00000100);
+                handleInputChange(TouchPanelZone.B6, currentInput[3], 0b00001000);
+                handleInputChange(TouchPanelZone.B7, currentInput[3], 0b00010000);
 
             }
 
             if (currentInput[4] != _currentState[4])
             {
-                handleInputChange(TouchPanelZone.B8, (currentInput[4] & 0b00000001) != 0);
-                handleInputChange(TouchPanelZone.C1, (currentInput[4] & 0b00000010) != 0);
-                handleInputChange(TouchPanelZone.C2, (currentInput[4] & 0b00000100) != 0);
-                handleInputChange(TouchPanelZone.D1, (currentInput[4] & 0b00001000) != 0);
-                handleInputChange(TouchPanelZone.D2, (currentInput[4] & 0b00010000) != 0);
+                handleInputChange(TouchPanelZone.B8, currentInput[4], 0b00000001);
+                handleInputChange(TouchPanelZone.C1, currentInput[4], 0b00000010);
+                handleInputChange(TouchPanelZone.C2, currentInput[4], 0b00000100);
+                handleInputChange(TouchPanelZone.D1, currentInput[4], 0b00001000);
+                handleInputChange(TouchPanelZone.D2, currentInput[4], 0b00010000);
 
             }
 
             if (currentInput[5] != _currentState[5])
             {
-                handleInputChange(TouchPanelZone.D3, (currentInput[5] & 0b00000001) != 0);
-                handleInputChange(TouchPanelZone.D4, (currentInput[5] & 0b00000010) != 0);
-                handleInputChange(TouchPanelZone.D5, (currentInput[5] & 0b00000100) != 0);
-                handleInputChange(TouchPanelZone.D6, (currentInput[5] & 0b00001000) != 0);
-                handleInputChange(TouchPanelZone.D7, (currentInput[5] & 0b00010000) != 0);
+                handleInputChange(TouchPanelZone.D3, currentInput[5], 0b00000001);
+                handleInputChange(TouchPanelZone.D4, currentInput[5], 0b00000010);
+                handleInputChange(TouchPanelZone.D5, currentInput[5], 0b00000100);
+                handleInputChange(TouchPanelZone.D6, currentInput[5], 0b00001000);
+                handleInputChange(TouchPanelZone.D7, currentInput[5], 0b00010000);
 
             }
             if (currentInput[6] != _currentState[6])
             {
-                handleInputChange(TouchPanelZone.D8, (currentInput[6] & 0b00000001) != 0);
-                handleInputChange(TouchPanelZone.E1, (currentInput[6] & 0b00000010) != 0);
-                handleInputChange(TouchPanelZone.E2, (currentInput[6] & 0b00000100) != 0);
-                handleInputChange(TouchPanelZone.E3, (currentInput[6] & 0b00001000) != 0);
-                handleInputChange(TouchPanelZone.E4, (currentInput[6] & 0b00010000) != 0);
+                handleInputChange(TouchPanelZone.D8, currentInput[6], 0b00000001);
+                handleInputChange(TouchPanelZone.E1, currentInput[6], 0b00000010);
+                handleInputChange(TouchPanelZone.E2, currentInput[6], 0b00000100);
+                handleInputChange(TouchPanelZone.E3, currentInput[6], 0b00001000);
+                handleInputChange(TouchPanelZone.E4, currentInput[6], 0b00010000);
             }
 
             if (currentInput[7] != _currentState[7])
             {
-                handleInputChange(TouchPanelZone.E5, (currentInput[7] & 0b00000001) != 0);
-                handleInputChange(TouchPanelZone.E6, (currentInput[7] & 0b00000010) != 0);
-                handleInputChange(TouchPanelZone.E7, (currentInput[7] & 0b00000100) != 0);
-                handleInputChange(TouchPanelZone.E8, (currentInput[7] & 0b00001000) != 0);
+                handleInputChange(TouchPanelZone.E5, currentInput[7], 0b00000001);
+                handleInputChange(TouchPanelZone.E6, currentInput[7], 0b00000010);
+                handleInputChange(TouchPanelZone.E7, currentInput[7], 0b00000100);
+                handleInputChange(TouchPanelZone.E8, currentInput[7], 0b00001000);
             }
 
             _currentState = currentInput;
         }
 
-        private void handleInputChange(TouchPanelZone zone, bool result)
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        private void handleInputChange(TouchPanelZone zone, byte input, byte mask)
         {
             _currentActiveStates.TryGetValue(zone, out var currentActiveState);
-            if (result == currentActiveState)
+            if (((input & mask) != 0) != currentActiveState)
             {
-                return;
+                _inputSubscriptions.TryGetValue(zone, out var callback);
+                var newState = currentActiveState ? InputState.Off : InputState.On;
+                callback(zone, newState);
+                _currentActiveStates[zone] = !currentActiveState;
             }
-            _inputSubscriptions.TryGetValue(zone, out var callback);
-            var newState = currentActiveState ? InputState.Off : InputState.On;
-            callback(zone, newState);
-            _currentActiveStates[zone] = !currentActiveState;
         }
 
 
@@ -259,6 +260,11 @@ namespace MychIO.Device
         public override void ReadData(IntPtr intPtr)
         {
             throw new NotImplementedException();
+        }
+
+        public override Task OnDisconnectWrite()
+        {
+            return Task.CompletedTask;
         }
 
 #if UNITY_EDITOR

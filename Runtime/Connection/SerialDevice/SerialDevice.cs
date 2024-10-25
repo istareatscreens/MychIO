@@ -19,10 +19,25 @@ namespace MychIO.Connection.SerialDevice
          base(device, connectionProperties, manager)
         { }
 
+        private void OnDestroy()
+        {
+            Task.Run(async () =>
+            {
+                await Disconnect();
+            }).Wait();
+        }
+
         public new static ConnectionType GetConnectionType() => ConnectionType.SerialDevice;
 
         public override Task Connect()
         {
+
+            if (IsConnected())
+            {
+                // TODO: Set event here
+                return Task.CompletedTask;
+            }
+
             if (_connectionProperties is not SerialDeviceProperties)
             {
                 throw new Exception("Invalid connection object passed to SerialDevice class");
@@ -84,7 +99,7 @@ namespace MychIO.Connection.SerialDevice
             {
                 // Throw event here potentially in the future for now just disconnect
                 _manager.handleEvent(IOEventType.ConnectionError, _device.GetClassification(), _device.GetType().ToString() + "device connection failed due to following exception: " + e);
-                Disconnect();
+                await Disconnect();
             }
         }
 
@@ -93,7 +108,7 @@ namespace MychIO.Connection.SerialDevice
             _cancellationTokenSource.Cancel();
         }
 
-        public override void Disconnect()
+        public override async Task Disconnect()
         {
             _device.ResetState();
             if (IsReading())
@@ -102,6 +117,7 @@ namespace MychIO.Connection.SerialDevice
             }
             if (IsConnected())
             {
+                await _device.OnDisconnectWrite();
                 _serialPort.Close();
             }
             _serialPort = null;

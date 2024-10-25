@@ -12,43 +12,39 @@ using UnityEngine;
 
 namespace MychIO.Device
 {
-    public class AdxIO4ButtonRing : Device<ButtonRingZone, InputState, HidDeviceProperties>
+    public class AdxHIDButtonRing : Device<ButtonRingZone, InputState, HidDeviceProperties>
     {
 
-        /*
-            no input - 00000000 00000010 00000000 00001101 11111000
-            BA1 - 00000000 00000010 00000000 00001001 11111000
-            BA2 - 00000000 00000010 00000000 00000101 11111000
-            BA3 - 00000000 00000010 00000000 00001100 11111000
-            BA4 - 00000000 00000010 00000000 00001101 01111000
-            BA5 - 00000000 00000010 00000000 00001101 10111000
-            BA6 - 00000000 00000010 00000000 00001101 11011000
-            BA7 - 00000000 00000010 00000000 00001101 11101000
-            BA8 - 00000000 00000010 00000000 00001101 11110000
-            up - 00000000 00000010 00000000 00001111 11111000
-            select - 00000000 00000010 00000000 00001101 11111010
-            down - 00000000 00000010 00000000 01001101 11111000
-            coin - 00000001 00000010 00000000 00001101 11111000
+        /*              byte index
+            No Input:   ?
+            BA1:        4 
+            BA2:        3
+            BA3:        2
+            BA4:        1
+            BA5:        8
+            BA6:        7
+            BA7:        6
+            BA8:        5
+            up :        9
+            select:     10
+            down:       11
+            coin:       12
         */
 
-        public const string DEVICE_NAME = "AdxIO4ButtonRing";
+        public const string DEVICE_NAME = "AdxHIDButtonRing";
         // Rather hardcode it here for micro optimization if you need different 
         // settings just copy this class and change these values
-        public const int BUFFER_SIZE = 64;
-        public const int LEFT_BYTES_TO_TRUNCATE = 26;
-        public const int BYTES_TO_READ = 5;
-
-        // Operational constants
-        public const byte NO_INPUT_BYTE3 = 0x0D;
-        public const byte NO_INPUT_BYTE4 = 0xF8;
+        public const int BUFFER_SIZE = 13;
+        public const int LEFT_BYTES_TO_TRUNCATE = 1;
+        public const int BYTES_TO_READ = 13;
 
         // ** Connection Properties -- Required by factory: 
         public static new ConnectionType GetConnectionType() => ConnectionType.HID;
         public static new DeviceClassification GetDeviceClassification() => DeviceClassification.ButtonRing;
         public static new string GetDeviceName() => DEVICE_NAME;
         public static new IConnectionProperties GetDefaultConnectionProperties() => new HidDeviceProperties(
-            vendorId: 0x0CA3,
-            productId: 0x0021,
+            vendorId: 0x2e3c,
+            productId: 0x5750,
             bufferSize: BUFFER_SIZE,
             leftBytesToTruncate: LEFT_BYTES_TO_TRUNCATE,
             bytesToRead: BYTES_TO_READ
@@ -56,13 +52,15 @@ namespace MychIO.Device
         // ** Connection Properties
         private static readonly byte[] NO_INPUT_PACKET = new byte[]
         {
-            0x00,0x02,0x00,0x0D,0xF8
+            0x00,0x00,0x00,0x00,0x00,
+            0x00,0x00,0x00,0x00,0x00,
+            0x00,0x00
         };
         private byte[] _currentState = NO_INPUT_PACKET;
         private IDictionary<ButtonRingZone, bool> _currentActiveStates;
         public static readonly IDictionary<ButtonRingCommand, byte[]> Commands = new Dictionary<ButtonRingCommand, byte[]> { };
 
-        public AdxIO4ButtonRing(
+        public AdxHIDButtonRing(
             IDictionary<Enum, Action<Enum, Enum>> inputSubscriptions,
             IDictionary<string, dynamic> connectionProperties = null,
             IOManager manager = null
@@ -112,75 +110,40 @@ namespace MychIO.Device
             {
                 return;
             }
-            /*
-                // bit shift right -> off
-                BA3  -> byte 3, position 0 OFF
-                up  -> byte 3, position 1 ON
-                BA1 -> byte 3, position 2 OFF
-                BA2 -> byte 3, position 3 OFF
-                // bit shift left -> on (new number)
-                down -> byte 3, position 1 ON
-            */
-            if (_currentState[3] != currentInput[3])
-            {
-                var InvertedByte3 = (byte)~currentInput[3];
 
-                handleInputChange(ButtonRingZone.BA3, InvertedByte3, LEAST_SIGNIFICANT_BIT);
+            handleInputChange(ButtonRingZone.BA3, currentInput[2]);
 
-                handleInputChange(ButtonRingZone.ArrowUp, currentInput[3], 0b00000010);
+            handleInputChange(ButtonRingZone.ArrowUp, currentInput[9]);
 
-                handleInputChange(ButtonRingZone.BA1, InvertedByte3, 0b00000100);
+            handleInputChange(ButtonRingZone.BA1, currentInput[4]);
 
-                handleInputChange(ButtonRingZone.BA2, InvertedByte3, 0b00001000);
+            handleInputChange(ButtonRingZone.BA2, currentInput[3]);
 
-                handleInputChange(ButtonRingZone.ArrowDown, currentInput[3], 0b01000000);
-            }
+            handleInputChange(ButtonRingZone.ArrowDown, currentInput[11]);
 
-            /*
-            // bit shift left -> off
-                BA4  -> byte 4, position 0 OFF
-                BA5  -> byte 4, position 1 OFF
-                BA6  -> byte 4, position 2 OFF
-                BA7  -> byte 4, position 3 OFF
-                BA8  -> byte 4, position 4 OFF
-                Select -> byte 4, position 6 ON
-            */
-            if (_currentState[4] != currentInput[3])
-            {
-                var InvertedByte4 = (byte)~currentInput[4];
+            handleInputChange(ButtonRingZone.BA4, currentInput[1]);
 
-                handleInputChange(ButtonRingZone.BA4, InvertedByte4, MOST_SIGNIFICANT_BIT);
+            handleInputChange(ButtonRingZone.BA5, currentInput[8]);
 
-                handleInputChange(ButtonRingZone.BA5, InvertedByte4, 0b01000000);
+            handleInputChange(ButtonRingZone.BA6, currentInput[7]);
 
-                handleInputChange(ButtonRingZone.BA6, InvertedByte4, 0b00100000);
+            handleInputChange(ButtonRingZone.BA7, currentInput[6]);
 
-                handleInputChange(ButtonRingZone.BA7, InvertedByte4, 0b00010000);
+            handleInputChange(ButtonRingZone.BA8, currentInput[5]);
 
-                handleInputChange(ButtonRingZone.BA8, InvertedByte4, 0b00001000);
+            handleInputChange(ButtonRingZone.Select, currentInput[10]);
 
-                handleInputChange(ButtonRingZone.Select, currentInput[4], 0b00000010);
-            }
-
-            // coin -> byte 0 (00000001)
-            if (_currentState[0] != currentInput[0])
-            {
-                handleInputChange(
-                    ButtonRingZone.InsertCoin,
-                    currentInput[0],
-                    LEAST_SIGNIFICANT_BIT
-                );
-            }
+            handleInputChange(ButtonRingZone.InsertCoin, currentInput[12]);
 
             _currentState = currentInput;
 
         }
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        private void handleInputChange(ButtonRingZone zone, byte input, byte mask)
+        private void handleInputChange(ButtonRingZone zone, byte input)
         {
             _currentActiveStates.TryGetValue(zone, out var currentActiveState);
-            if (((input & mask) != 0) != currentActiveState)
+            if ((input == LEAST_SIGNIFICANT_BIT) != currentActiveState)
             {
                 _inputSubscriptions.TryGetValue(zone, out var callback);
                 var newState = currentActiveState ? InputState.Off : InputState.On;
@@ -212,4 +175,6 @@ namespace MychIO.Device
             return Task.CompletedTask;
         }
     }
+
+
 }
