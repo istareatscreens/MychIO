@@ -21,10 +21,7 @@ namespace MychIO.Connection.SerialDevice
 
         private void OnDestroy()
         {
-            Task.Run(async () =>
-            {
-                await Disconnect();
-            }).Wait();
+            _device?.OnDisconnectWrite();
         }
 
         public new static ConnectionType GetConnectionType() => ConnectionType.SerialDevice;

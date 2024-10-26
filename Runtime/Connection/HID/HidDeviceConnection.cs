@@ -63,25 +63,24 @@ namespace MychIO.Connection.HidDevice
 
         private void OnDestroy()
         {
-            Task.Run(async () =>
+
+            if (_dataCallbackHandle.IsAllocated)
             {
-                if (IsReading())
-                {
-                    await Disconnect();
-                }
-                if (_dataCallbackHandle.IsAllocated)
-                {
-                    _dataCallbackHandle.Free();
-                }
-                if (_eventCallbackHandle.IsAllocated)
-                {
-                    _eventCallbackHandle.Free();
-                }
-                if (_pluginHandle != IntPtr.Zero)
-                {
-                    UnityHidApiPlugin.Dispose(_pluginHandle);
-                }
-            }).Wait();
+                _dataCallbackHandle.Free();
+            }
+            if (_eventCallbackHandle.IsAllocated)
+            {
+                _eventCallbackHandle.Free();
+            }
+            if (_pluginHandle != IntPtr.Zero)
+            {
+                UnityHidApiPlugin.Dispose(_pluginHandle);
+            }
+            try
+            {
+                _device?.OnDisconnectWrite();
+            }
+            catch { }
         }
 
         public override bool CanConnect(IConnection connectionProperties)
