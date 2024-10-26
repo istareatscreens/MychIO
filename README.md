@@ -169,6 +169,34 @@ Where,
 - connectionProperties - stores the properties specific to their connection interface. These can be used to overwrite the default device connection properties. These properties implement the `MychIO.Connection.IConnectionProperties` interface and can be easily serialized/unserialized using the an instantiated IConnection class (IDictionary<string, dynamic> <==> concrete IConnection object)
 - inputSubscriptions - Callbacks that are triggered by controller interaction mapped by device interaction zone enum
 
+## Adding Custom Connection Properties to A Device
+
+To add connection properties to a device you acquire instantiate a new ConnectionProperties class for specific device you can instantiate an appropriate IConnnectionProperties class and use its copy constructor. You can call the GetDefaultConnectionProperties method on the specific device you want to generate a properties object for and then pass whatever other properties you wish to change.
+Then call the `GetProperties` method on this properties object to serialize them.
+
+```C#
+        var propertiesTouchPanel = new SerialDeviceProperties(
+            (SerialDeviceProperties)AdxTouchPanel.GetDefaultConnectionProperties(),
+            comPortNumber: "COM10"
+        ).GetProperties();
+
+        _ioManager
+            .AddTouchPanel(
+                AdxTouchPanel.GetDeviceName(),
+                propertiesTouchPanel,
+                inputSubscriptions: touchPanelCallbacks
+        );
+```
+
+The current implemented devices have the following connection objects:
+
+| Device Concrete Class | ConnectionProperties Object |
+| --------------------- | --------------------------- |
+| `AdxTouchPanel`       | `SerialDeviceProperties`    |
+| `AdxLedDevice`        | `SerialDeviceProperties`    |
+| `AdxIO4ButtonRing`    | `HidDeviceProperties`       |
+| `AdxHIDButtonRing`    | `HidDeviceProperties`       |
+
 ## Writing to Devices
 
 Once the connection to a device is established you can send commands to execute specific functions using the follow IOManager method:

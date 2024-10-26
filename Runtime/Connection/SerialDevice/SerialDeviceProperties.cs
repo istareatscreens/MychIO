@@ -48,6 +48,36 @@ namespace MychIO.Connection.SerialDevice
             PopulatePropertiesFromFields();
         }
 
+        public SerialDeviceProperties(
+            SerialDeviceProperties existing,
+            string comPortNumber = null,
+            int? pollingRateMs = null,
+            int? bufferByteLength = null,
+            int? writeTimeoutMS = null,
+            int? portNumber = null,
+            BaudRate? baudRate = null,
+            StopBits? stopBit = null,
+            Parity? parityBit = null,
+            DataBits? dataBits = null,
+            Handshake? handshake = null,
+            bool? dtr = null,
+            bool? rts = null
+        )
+        {
+            ComPortNumber = comPortNumber ?? existing.ComPortNumber;
+            PollTimeoutMs = pollingRateMs ?? existing.PollTimeoutMs;
+            BufferByteLength = bufferByteLength ?? existing.BufferByteLength;
+            WriteTimeoutMS = writeTimeoutMS ?? existing.WriteTimeoutMS;
+            PortNumber = portNumber ?? existing.PortNumber;
+            BaudRate = baudRate ?? existing.BaudRate;
+            StopBit = stopBit ?? existing.StopBit;
+            ParityBit = parityBit ?? existing.ParityBit;
+            DataBits = dataBits ?? existing.DataBits;
+            Handshake = handshake ?? existing.Handshake;
+            Dtr = dtr ?? existing.Dtr;
+            Rts = rts ?? existing.Rts;
+        }
+
         public override ConnectionType GetConnectionType() => ConnectionType.SerialDevice;
     }
 }

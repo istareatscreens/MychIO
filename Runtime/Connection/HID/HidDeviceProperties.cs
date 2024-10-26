@@ -29,6 +29,24 @@ namespace MychIO.Connection.HidDevice
             pollingRateMs = PollingRateMs;
         }
 
+        public HidDeviceProperties(HidDeviceProperties existing,
+            int? productId = null,
+            int? vendorId = null,
+            int? bufferSize = null,
+            int? leftBytesToTruncate = null,
+            int? bytesToRead = null,
+            int? pollingRateMs = null
+        )
+        {
+            ProductId = productId ?? existing.ProductId;
+            VendorId = vendorId ?? existing.VendorId;
+            BufferSize = bufferSize ?? existing.BufferSize;
+            LeftBytesToTruncate = leftBytesToTruncate ?? existing.LeftBytesToTruncate;
+            BytesToRead = bytesToRead ?? existing.BytesToRead;
+            PollingRateMs = pollingRateMs ?? existing.PollingRateMs;
+        }
+
+
         public override ConnectionType GetConnectionType() => ConnectionType.SerialDevice;
     }
 }
