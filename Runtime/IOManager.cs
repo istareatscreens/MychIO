@@ -32,8 +32,8 @@ namespace MychIO
         public async Task AddDeviceByName(
             string deviceName,
             IDictionary<string, dynamic> connectionProperties = null,
-            IDictionary<Enum, Action<Enum, Enum>> inputSubscriptions = null,
-            DeviceClassification deviceClassification = DeviceClassification.Undefined
+            DeviceClassification deviceClassification = DeviceClassification.Undefined,
+            IDictionary<Enum, Action<Enum, Enum>> inputSubscriptions = null
         )
         {
             if (DeviceClassification.Undefined == deviceClassification)
@@ -85,8 +85,8 @@ namespace MychIO
             (
                 deviceName,
                 connectionProperties,
-                ConvertDictionary(inputSubscriptions),
-                DeviceClassification.TouchPanel
+                DeviceClassification.TouchPanel,
+                ConvertDictionary(inputSubscriptions)
             );
         }
 
@@ -101,8 +101,22 @@ namespace MychIO
             (
                 deviceName,
                 connectionProperties,
-                ConvertDictionary(inputSubscriptions),
-                DeviceClassification.ButtonRing
+                DeviceClassification.ButtonRing,
+                ConvertDictionary(inputSubscriptions)
+            );
+        }
+
+        public async Task AddLedDevice(
+            string deviceName,
+            IDictionary<string, dynamic> connectionProperties = null
+        )
+        {
+            await AddDeviceByName
+            (
+                deviceName,
+                connectionProperties,
+                DeviceClassification.LedDevice,
+                ConvertDictionary(new Dictionary<Enum, Action<Enum, Enum>>())
             );
         }
 

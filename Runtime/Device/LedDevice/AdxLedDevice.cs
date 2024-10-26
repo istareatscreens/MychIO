@@ -85,6 +85,8 @@ namespace MychIO.Device
             {
                 await _connection.Write(command);
             }
+            await Write(LedCommand.ClearAll);
+
         }
 
         public async override Task OnDisconnectWrite()
@@ -93,7 +95,9 @@ namespace MychIO.Device
         }
 
         public override void ReadData(byte[] data)
-        { }
+        {
+            Debug.Log(data);
+        }
 
         public override void ResetState()
         {

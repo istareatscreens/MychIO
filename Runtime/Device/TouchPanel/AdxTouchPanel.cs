@@ -223,7 +223,6 @@ namespace MychIO.Device
             }
         }
 
-
         public override void ResetState()
         {
             _currentState = NO_INPUT_PACKET;
