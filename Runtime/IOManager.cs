@@ -29,7 +29,7 @@ namespace MychIO
 
         public IOManager() { }
 
-        public async Task AddDeviceByName(
+        public void AddDeviceByName(
             string deviceName,
             IDictionary<string, dynamic> connectionProperties = null,
             DeviceClassification deviceClassification = DeviceClassification.Undefined,
@@ -53,65 +53,66 @@ namespace MychIO
                 inputSubscriptions = setDeviceClassification;
             }
 
-            if (_deviceClassificationToDevice.TryGetValue(deviceClassification, out var oldDevice))
+            Task.Run(async () =>
             {
-                await oldDevice.Disconnect();
-            }
+                if (_deviceClassificationToDevice.TryGetValue(deviceClassification, out var oldDevice))
+                {
+                    await oldDevice.Disconnect();
+                }
 
-            var device = await DeviceFactory.GetDeviceAsync(
-                deviceName,
-                connectionProperties,
-                inputSubscriptions,
-                _deviceClassificationToDevice.Values.ToArray(),
-                this
-            );
-            _deviceClassificationToDevice.Add(device.GetClassification(), device);
+                var device = await DeviceFactory.GetDeviceAsync(
+                    deviceName,
+                    connectionProperties,
+                    inputSubscriptions,
+                    _deviceClassificationToDevice.Values.ToArray(),
+                    this
+                );
+                _deviceClassificationToDevice.Add(device.GetClassification(), device);
 
-            // Save for reloading
-            /*
-            _tagToDeviceClassificationToDeviceInputAction[STANDARD_INPUT] =
-            new DeviceClassificationToInputAction { { deviceClassification, inputSubscriptions } };
-            */
+                // Save for reloading
+                _tagToDeviceClassificationToDeviceInputAction[STANDARD_INPUT] =
+                new DeviceClassificationToInputAction { { deviceClassification, inputSubscriptions } };
+            });
         }
 
-        public async Task AddTouchPanel(
+        public void AddTouchPanel(
             string deviceName,
             IDictionary<string, dynamic> connectionProperties = null,
             IDictionary<TouchPanelZone, Action<TouchPanelZone, InputState>> inputSubscriptions = null
         )
         {
             EnsureAllInputStatesAreAccountedFor(inputSubscriptions);
-            await AddDeviceByName
-            (
-                deviceName,
-                connectionProperties,
-                DeviceClassification.TouchPanel,
-                ConvertDictionary(inputSubscriptions)
-            );
+            AddDeviceByName
+           (
+               deviceName,
+               connectionProperties,
+               DeviceClassification.TouchPanel,
+               ConvertDictionary(inputSubscriptions)
+           );
         }
 
-        public async Task AddButtonRing(
+        public void AddButtonRing(
             string deviceName,
             IDictionary<string, dynamic> connectionProperties = null,
             IDictionary<ButtonRingZone, Action<ButtonRingZone, InputState>> inputSubscriptions = null
         )
         {
             EnsureAllInputStatesAreAccountedFor(inputSubscriptions);
-            await AddDeviceByName
-            (
-                deviceName,
-                connectionProperties,
-                DeviceClassification.ButtonRing,
-                ConvertDictionary(inputSubscriptions)
-            );
+            AddDeviceByName
+           (
+               deviceName,
+               connectionProperties,
+               DeviceClassification.ButtonRing,
+               ConvertDictionary(inputSubscriptions)
+           );
         }
 
-        public async Task AddLedDevice(
+        public void AddLedDevice(
             string deviceName,
             IDictionary<string, dynamic> connectionProperties = null
         )
         {
-            await AddDeviceByName
+            AddDeviceByName
             (
                 deviceName,
                 connectionProperties,
@@ -132,7 +133,7 @@ namespace MychIO
             return newDict;
         }
 
-        public async Task WriteToDevice(DeviceClassification deviceClassification, Enum[] command)
+        public async Task WriteToDevice(DeviceClassification deviceClassification, params Enum[] command)
         {
             if (_deviceClassificationToDevice.TryGetValue(deviceClassification, out var device) && device.IsConnected())
             {

@@ -1,6 +1,6 @@
 {
   "name": "dev.isas.mychio",
-  "version": "0.1.0",
+  "version": "0.8.0",
   "displayName": "MychIO",
   "description": "Read inputs from adx and similar controllers",
   "unity": "2024.6",
@@ -17,7 +17,5 @@
     "email": "istareatscreens@protonmail.com",
     "url": "https://github.com/istareatscreens"
   },
-  "dependencies": 
-  {
-  }
+  "dependencies": {}
 }
