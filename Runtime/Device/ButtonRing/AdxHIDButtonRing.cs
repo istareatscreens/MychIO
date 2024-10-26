@@ -36,7 +36,7 @@ namespace MychIO.Device
         // settings just copy this class and change these values
         public const int BUFFER_SIZE = 13;
         public const int LEFT_BYTES_TO_TRUNCATE = 1;
-        public const int BYTES_TO_READ = 13;
+        public const int BYTES_TO_READ = 12;
 
         // ** Connection Properties -- Required by factory: 
         public static new ConnectionType GetConnectionType() => ConnectionType.HID;
@@ -111,29 +111,29 @@ namespace MychIO.Device
                 return;
             }
 
-            handleInputChange(ButtonRingZone.BA3, currentInput[2]);
+            handleInputChange(ButtonRingZone.BA3, currentInput[1]);
 
-            handleInputChange(ButtonRingZone.ArrowUp, currentInput[9]);
+            handleInputChange(ButtonRingZone.ArrowUp, currentInput[8]);
 
-            handleInputChange(ButtonRingZone.BA1, currentInput[4]);
+            handleInputChange(ButtonRingZone.BA1, currentInput[3]);
 
-            handleInputChange(ButtonRingZone.BA2, currentInput[3]);
+            handleInputChange(ButtonRingZone.BA2, currentInput[2]);
 
-            handleInputChange(ButtonRingZone.ArrowDown, currentInput[11]);
+            handleInputChange(ButtonRingZone.ArrowDown, currentInput[10]);
 
-            handleInputChange(ButtonRingZone.BA4, currentInput[1]);
+            handleInputChange(ButtonRingZone.BA4, currentInput[0]);
 
-            handleInputChange(ButtonRingZone.BA5, currentInput[8]);
+            handleInputChange(ButtonRingZone.BA5, currentInput[7]);
 
-            handleInputChange(ButtonRingZone.BA6, currentInput[7]);
+            handleInputChange(ButtonRingZone.BA6, currentInput[6]);
 
-            handleInputChange(ButtonRingZone.BA7, currentInput[6]);
+            handleInputChange(ButtonRingZone.BA7, currentInput[5]);
 
-            handleInputChange(ButtonRingZone.BA8, currentInput[5]);
+            handleInputChange(ButtonRingZone.BA8, currentInput[4]);
 
-            handleInputChange(ButtonRingZone.Select, currentInput[10]);
+            handleInputChange(ButtonRingZone.Select, currentInput[9]);
 
-            handleInputChange(ButtonRingZone.InsertCoin, currentInput[12]);
+            handleInputChange(ButtonRingZone.InsertCoin, currentInput[11]);
 
             _currentState = currentInput;
 
