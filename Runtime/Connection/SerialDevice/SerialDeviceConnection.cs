@@ -35,10 +35,8 @@ namespace MychIO.Connection.SerialDevice
                 return Task.CompletedTask;
             }
 
-            if (_connectionProperties is not SerialDeviceProperties)
-            {
-                throw new Exception("Invalid connection object passed to SerialDevice class");
-            }
+            ValidateConnectionProperties<SerialDeviceProperties>();
+
             var serialDeviceProperties = (SerialDeviceProperties)_connectionProperties;
 
             _pollTimeoutMs = serialDeviceProperties.PollTimeoutMs;

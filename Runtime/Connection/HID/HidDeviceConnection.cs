@@ -1,13 +1,8 @@
 using System;
 using System.Runtime.InteropServices;
-using System.Threading;
 using System.Threading.Tasks;
 using MychIO.Device;
 using MychIO.Event;
-using Unity.Collections;
-using Unity.Collections.LowLevel.Unsafe;
-using UnityEditor.Build;
-using UnityEngine;
 
 namespace MychIO.Connection.HidDevice
 {
@@ -24,14 +19,8 @@ namespace MychIO.Connection.HidDevice
         public HidDeviceConnection(IDevice device, IConnectionProperties connectionProperties, IOManager manager) :
          base(device, connectionProperties, manager)
         {
-            if (connectionProperties is not HidDeviceProperties)
-            {
-                manager.handleEvent(
-                    IOEventType.ConnectionError,
-                        _device.GetClassification(),
-                        "Invalid property object passed to HidConnection"
-                );
-            }
+
+            ValidateConnectionProperties<HidDeviceProperties>();
 
             if (1 != UnityHidApiPlugin.PluginLoaded())
             {

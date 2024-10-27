@@ -2,6 +2,7 @@ using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Threading.Tasks;
+using MychIO.Event;
 
 namespace MychIO.Device
 {
@@ -28,7 +29,7 @@ namespace MychIO.Device
         {
             if (!_deviceNameToType.TryGetValue(deviceName, out var deviceType))
             {
-                throw new Exception("Could not find device");
+                manager.handleEvent(IOEventType.ConnectionError, message: $"Could not find device {deviceName}");
             }
 
             var constructor = deviceType
@@ -38,14 +39,14 @@ namespace MychIO.Device
 
             if (constructor == null)
             {
-                throw new Exception($"No suitable constructor found for device type {deviceType}");
+                manager.handleEvent(IOEventType.ConnectionError, message: $"No suitable constructor found for device type {deviceType}");
             }
             var device = (IDevice)constructor.Invoke(new object[] { inputSubscriptions, connectionProperties, manager });
 
             // Check if the connection can even be created or if a duplicate device exists
             if (!ConnectedDevices.All(d => d.CanConnect(device)))
             {
-                throw new Exception("Duplicate connection already exists cannot connect");
+                manager.handleEvent(IOEventType.ConnectionError, message: $"Duplicate connection for {device.GetType().Name} already exists cannot connect");
             }
 
             return await device.Connect();

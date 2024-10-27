@@ -1,12 +1,10 @@
 using System;
-using System.Collections.Generic;
-using System.Data.SqlTypes;
 using System.Linq;
 using System.Text;
-using System.Threading.Tasks;
 
 namespace MychIO.Helper
 {
+    // Mainly functions for debugging
     public class HelperFunctions
     {
 
@@ -27,7 +25,7 @@ namespace MychIO.Helper
         {
             if (byteArray == null)
             {
-                throw new ArgumentNullException(nameof(byteArray));
+                return "";
             }
 
             var bitString = new StringBuilder();

@@ -1,6 +1,5 @@
 using System;
 using System.Collections.Generic;
-using System.Reflection;
 using System.Threading.Tasks;
 using MychIO.Connection;
 
@@ -77,7 +76,7 @@ namespace MychIO.Device
 
         public bool IsConnected()
         {
-            throw new NotImplementedException();
+            throw new NotImplementedException("Should be implemented by base class");
         }
 
         public IConnection GetConnection()

@@ -8,9 +8,10 @@ namespace MychIO.Connection
 
     // Note all public properties of this class will be added to the _properties object
     // Properties should only be updated on object construction through the constructor
+    // WARNING! Member variables must be directly accessible (no {get; set;}) or it will break serialization/unserialization
     public abstract class ConnectionProperties : IConnectionProperties
     {
-        private IDictionary<string, dynamic> _properties;
+        private IDictionary<string, dynamic> _properties = new Dictionary<string, dynamic>();
 
         public string Id { get; private set; }
 
@@ -35,7 +36,7 @@ namespace MychIO.Connection
 
         protected void PopulatePropertiesFromFields()
         {
-            var fields = GetType().GetFields(BindingFlags.Public | BindingFlags.Instance);
+            var fields = GetType().GetFields(BindingFlags.Public | BindingFlags.Instance | BindingFlags.FlattenHierarchy);
             foreach (var field in fields)
             {
                 var value = field.GetValue(this);

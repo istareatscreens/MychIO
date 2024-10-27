@@ -3,19 +3,19 @@ namespace MychIO.Connection.SerialDevice
     public class SerialDeviceProperties : ConnectionProperties
     {
         public const int DEFAULT_WRITE_TIMEOUT_MS = 1000;
-
-        public string ComPortNumber { get; set; }
-        public int PollTimeoutMs { get; set; }
-        public int BufferByteLength { get; set; }
-        public int WriteTimeoutMS { get; set; }
-        public int PortNumber { get; set; }
-        public BaudRate BaudRate { get; set; }
-        public StopBits StopBit { get; set; }
-        public Parity ParityBit { get; set; }
-        public DataBits DataBits { get; set; }
-        public Handshake Handshake { get; set; }
-        public bool Dtr { get; set; }
-        public bool Rts { get; set; }
+        // WARNING: Adding {get; set;} will break serialization/unserialization of properties!
+        public string ComPortNumber;
+        public int PollTimeoutMs;
+        public int BufferByteLength;
+        public int WriteTimeoutMS;
+        public int PortNumber;
+        public BaudRate BaudRate;
+        public StopBits StopBit;
+        public Parity ParityBit;
+        public DataBits DataBits;
+        public Handshake Handshake;
+        public bool Dtr;
+        public bool Rts;
 
         // Constructor that initializes all properties
         public SerialDeviceProperties(
@@ -48,6 +48,7 @@ namespace MychIO.Connection.SerialDevice
             PopulatePropertiesFromFields();
         }
 
+        // Copy Constructor used for creating properties objects from default properties
         public SerialDeviceProperties(
             SerialDeviceProperties existing,
             string comPortNumber = null,
@@ -76,6 +77,7 @@ namespace MychIO.Connection.SerialDevice
             Handshake = handshake ?? existing.Handshake;
             Dtr = dtr ?? existing.Dtr;
             Rts = rts ?? existing.Rts;
+            PopulatePropertiesFromFields();
         }
 
         public override ConnectionType GetConnectionType() => ConnectionType.SerialDevice;

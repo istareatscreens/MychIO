@@ -1,11 +1,14 @@
 using System;
 using System.Runtime.InteropServices;
-using PlasticPipe.PlasticProtocol.Messages;
 using UnityEditor;
 
 namespace MychIO.Connection.HidDevice
 {
+
+#if UNITY_EDITOR
+    // This is to force cleanup of the plugin to prevent crashes in unity development environment
     [InitializeOnLoad]
+#endif
     public static class UnityHidApiPlugin
     {
 

@@ -1,5 +1,6 @@
 using System.Threading.Tasks;
 using MychIO.Device;
+using MychIO.Event;
 
 namespace MychIO.Connection
 {
@@ -41,6 +42,18 @@ namespace MychIO.Connection
         public abstract void Read();
 
         public abstract void StopReading();
+
+        protected void ValidateConnectionProperties<T>() where T : ConnectionProperties
+        {
+            if (_connectionProperties is not T)
+            {
+                _manager.handleEvent(
+                    IOEventType.ConnectionError,
+                    _device.GetClassification(),
+                    $"{_device.GetType().Name} Invalid properties object passed should be {typeof(T).Name} got {_connectionProperties.GetType().Name}"
+                );
+            }
+        }
 
     }
 

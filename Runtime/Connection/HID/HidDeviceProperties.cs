@@ -4,12 +4,13 @@ namespace MychIO.Connection.HidDevice
 {
     public class HidDeviceProperties : ConnectionProperties
     {
-        public int ProductId { get; set; }
-        public int VendorId { get; set; }
-        public int BufferSize { get; set; }
-        public int LeftBytesToTruncate { get; set; }
-        public int BytesToRead { get; set; }
-        public int PollingRateMs { get; set; }
+        // WARNING: Adding {get; set;} will break serialization/unserialization of properties!
+        public int ProductId;
+        public int VendorId;
+        public int BufferSize;
+        public int LeftBytesToTruncate;
+        public int BytesToRead;
+        public int PollingRateMs;
 
         // Constructor that initializes all properties
         public HidDeviceProperties(
@@ -29,7 +30,9 @@ namespace MychIO.Connection.HidDevice
             pollingRateMs = PollingRateMs;
         }
 
-        public HidDeviceProperties(HidDeviceProperties existing,
+        // Copy Constructor used for creating properties objects from default properties
+        public HidDeviceProperties(
+            HidDeviceProperties existing,
             int? productId = null,
             int? vendorId = null,
             int? bufferSize = null,
@@ -44,6 +47,7 @@ namespace MychIO.Connection.HidDevice
             LeftBytesToTruncate = leftBytesToTruncate ?? existing.LeftBytesToTruncate;
             BytesToRead = bytesToRead ?? existing.BytesToRead;
             PollingRateMs = pollingRateMs ?? existing.PollingRateMs;
+            PopulatePropertiesFromFields();
         }
 
 

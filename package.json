@@ -1,6 +1,6 @@
 {
   "name": "dev.isas.mychio",
-  "version": "0.8.0",
+  "version": "1.0.0",
   "displayName": "MychIO",
   "description": "Read inputs from adx and similar controllers",
   "unity": "2024.6",
