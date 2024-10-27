@@ -1,6 +1,8 @@
 using System;
 using System.Runtime.InteropServices;
+#if UNITY_EDITOR
 using UnityEditor;
+#endif
 
 namespace MychIO.Connection.HidDevice
 {
