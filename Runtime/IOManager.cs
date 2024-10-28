@@ -145,7 +145,7 @@ namespace MychIO
         {
             foreach (var (_, device) in _deviceClassificationToDevice)
             {
-                device.Disconnect();
+                device?.Disconnect();
             }
             _deviceClassificationToDevice = new Dictionary<DeviceClassification, IDevice>();
             _deviceClassificationToDeviceInputAction = new Dictionary<DeviceClassification, IDictionary<Enum, Action<Enum, Enum>>>();
@@ -271,6 +271,99 @@ namespace MychIO
         {
             // clone to prevent side effects
             _eventTypeToCallback = new Dictionary<IOEventType, ControllerEventDelegate>(eventSubscriptions);
+        }
+
+        // Fallback Methods
+        public bool IsReading(DeviceClassification deviceClassification)
+        {
+            if (_deviceClassificationToDevice.TryGetValue(deviceClassification, out var device))
+            {
+                return device?.IsReading() ?? false;
+            }
+            return false;
+        }
+
+        public bool IsConnected(DeviceClassification deviceClassification)
+        {
+            if (_deviceClassificationToDevice.TryGetValue(deviceClassification, out var device))
+            {
+                return device?.IsConnected() ?? false;
+            }
+            return false;
+        }
+
+        public bool ReConnect(DeviceClassification deviceClassification)
+        {
+            if (!_deviceClassificationToDevice.TryGetValue(deviceClassification, out IDevice device))
+            {
+                return false;
+            }
+            if (!_deviceClassificationToDeviceInputAction.TryGetValue(deviceClassification, out var deviceInputActions))
+            {
+                return false;
+            }
+
+            try
+            {
+                switch (deviceClassification)
+                {
+                    case DeviceClassification.TouchPanel:
+                        var touchPanelDevice = (IDevice<TouchPanelZone, InputState>)device;
+                        AddDeviceByName(
+                            touchPanelDevice.DeviceName(),
+                            touchPanelDevice.GetConnectionProperties().GetProperties(),
+                            deviceClassification,
+                            inputSubscriptions: deviceInputActions
+                        );
+                        return true;
+                    case DeviceClassification.ButtonRing:
+                        var buttonRingDevice = (IDevice<ButtonRingZone, InputState>)device;
+                        AddDeviceByName(
+                            buttonRingDevice.DeviceName(),
+                            buttonRingDevice.GetConnectionProperties().GetProperties(),
+                            deviceClassification,
+                            inputSubscriptions: deviceInputActions
+                        );
+                        return true;
+                    case DeviceClassification.LedDevice:
+                        var ledDevice = (IDevice<LedInteractions, LedMessage>)device;
+                        AddDeviceByName(
+                            ledDevice.DeviceName(),
+                            ledDevice.GetConnectionProperties().GetProperties(),
+                            deviceClassification,
+                            inputSubscriptions: deviceInputActions
+                        );
+                        return true;
+                    default:
+                        handleEvent(IOEventType.ConnectionError, deviceClassification, $"Impossible to reach point while trying to reconnect invalid device classification passed.");
+                        device?.Disconnect();
+                        return false;
+                }
+            }
+            catch (Exception e)
+            {
+                handleEvent(IOEventType.ConnectionError, deviceClassification, $"Exception occured when trying to reconnect device {e.Message}");
+            }
+            return false;
+        }
+
+        public bool StartReading(DeviceClassification deviceClassification)
+        {
+            if (!_deviceClassificationToDevice.TryGetValue(deviceClassification, out IDevice device))
+            {
+                return false;
+            }
+
+            try
+            {
+                device.StartReading();
+            }
+            catch (Exception e)
+            {
+                handleEvent(IOEventType.ConnectionError, deviceClassification, $"Exception occured when trying to start reading from the device {e.Message}");
+                return false;
+            }
+            return true;
         }
 
         // For Internal use only

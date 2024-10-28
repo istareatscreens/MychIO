@@ -4,8 +4,6 @@ using System.Linq;
 using System.Threading.Tasks;
 using MychIO.Connection;
 using MychIO.Connection.SerialDevice;
-using MychIO.Helper;
-using UnityEngine;
 
 namespace MychIO.Device
 {
@@ -20,6 +18,7 @@ namespace MychIO.Device
         public static new ConnectionType GetConnectionType() => ConnectionType.SerialDevice;
         public static new DeviceClassification GetDeviceClassification() => DeviceClassification.LedDevice;
         public static new string GetDeviceName() => DEVICE_NAME;
+        public override string DeviceName() => DEVICE_NAME;
         public static new IConnectionProperties GetDefaultConnectionProperties() => new SerialDeviceProperties(
             comPortNumber: "COM21",
             writeTimeoutMS: SerialDeviceProperties.DEFAULT_WRITE_TIMEOUT_MS,
@@ -93,9 +92,7 @@ namespace MychIO.Device
         }
 
         public override void ReadData(byte[] data)
-        {
-            Debug.Log(data);
-        }
+        { }
 
         public override void ResetState()
         {
@@ -134,7 +131,6 @@ namespace MychIO.Device
         {
             throw new NotImplementedException();
         }
-
 
     }
 

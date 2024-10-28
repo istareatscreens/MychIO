@@ -42,6 +42,7 @@ namespace MychIO.Device
         public static new ConnectionType GetConnectionType() => ConnectionType.HID;
         public static new DeviceClassification GetDeviceClassification() => DeviceClassification.ButtonRing;
         public static new string GetDeviceName() => DEVICE_NAME;
+        public override string DeviceName() => DEVICE_NAME;
         public static new IConnectionProperties GetDefaultConnectionProperties() => new HidDeviceProperties(
             vendorId: 0x0CA3,
             productId: 0x0021,

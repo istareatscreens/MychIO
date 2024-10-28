@@ -267,6 +267,38 @@ To execute the Subscription callbacks simply add the following to your Update() 
 
 This will execute all callbacks passed to the queue every frame
 
+## Fallback/Status methods
+
+In case of failure you can use the following methods to determine a devices status or attempt to restore the connection/read loop:
+
+```C#
+public bool IsReading(DeviceClassification deviceClassification)
+```
+
+- True if the device is currently being read from (no action needed).
+- False if it is not running the reading loop from the device. You should call StartReading method to start reading again.
+
+```C#
+public bool StartReading(DeviceClassification deviceClassification)
+```
+
+- True if the device has started the reading loop succesfully
+- False if the device could not re-establish the device reading loop (Should call ReConnect)
+
+```C#
+public bool IsConnected(DeviceClassification deviceClassification)
+```
+
+- True if device is connected and not ready to read
+- False if device is not connected and not ready to read
+
+```C#
+public bool ReConnect(DeviceClassification deviceClassification)
+```
+
+- True if device reconnected and established reading successfully
+- False if device failed to reconnect, should attempt reconnecting manually. This is also a strong indication of failure of the IOManager to reestablish connection to the device. Given the device was previously connected.
+
 # Testing and Development
 
 For integration of other controllers, testing, contributing there exists a unity development project that can be cloned [here](https://github.com/istareatscreens/MychIODev).

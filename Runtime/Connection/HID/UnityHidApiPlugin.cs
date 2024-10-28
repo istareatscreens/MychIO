@@ -30,6 +30,7 @@ namespace MychIO.Connection.HidDevice
         // Import the functions from the C++ plugin DLL
         [DllImport("UnityHidApiPlugin", CallingConvention = CallingConvention.Cdecl)]
         public static extern IntPtr Initialize(
+            int deviceClassification,
             int vendorId,
             int productId,
             int bufferSize,
@@ -64,7 +65,6 @@ namespace MychIO.Connection.HidDevice
 
         [DllImport("UnityHidApiPlugin", CallingConvention = CallingConvention.Cdecl)]
         public static extern bool StopReading(IntPtr plugin);
-
 
         // Plugin control
 

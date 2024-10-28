@@ -31,6 +31,7 @@ namespace MychIO.Device
         // Callback has parameters Input Type, and Interaction State (e.g. On/Off) respectively
         Task SetInputCallbacks(IDictionary<T1, Action<T1, T2>> inputSubscriptions);
         void AddInputCallback(T1 interactionZone, Action<T1, T2> callback);
+        string DeviceName();
 
     }
 }

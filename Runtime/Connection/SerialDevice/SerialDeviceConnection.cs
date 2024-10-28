@@ -113,7 +113,7 @@ namespace MychIO.Connection.SerialDevice
             if (IsConnected())
             {
                 await _device.OnDisconnectWrite();
-                _serialPort.Close();
+                _serialPort?.Close();
             }
             _serialPort = null;
             _manager.handleEvent(IOEventType.Detach, _device.GetClassification(), _device.GetType().ToString() + "device disconnected");

@@ -31,8 +31,10 @@ namespace MychIO.Connection.HidDevice
                 );
             }
 
+            // UnityHidApiPlugin.DisposeByClassification((int)device.GetClassification());
             HidDeviceProperties properties = (HidDeviceProperties)connectionProperties;
             _pluginHandle = UnityHidApiPlugin.Initialize(
+                (int)device.GetClassification(),
                 properties.VendorId,
                 properties.ProductId,
                 properties.BufferSize,
@@ -149,7 +151,7 @@ namespace MychIO.Connection.HidDevice
 
         public override void Read()
         {
-            if (!IsReading() && null != _pluginHandle)
+            if (!IsReading() && _pluginHandle != null && _pluginHandle != IntPtr.Zero)
             {
                 var dataCallback = (UnityHidApiPlugin.DataCallbackDelegate)_dataCallbackHandle.Target;
                 var eventCallback = (UnityHidApiPlugin.EventCallbackDelegate)_eventCallbackHandle.Target;
