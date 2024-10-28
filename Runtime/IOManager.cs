@@ -274,6 +274,11 @@ namespace MychIO
         }
 
         // Events
+        public void SubscribeAllEvents(ControllerEventDelegate callback)
+        {
+            foreach (IOEventType eventType in Enum.GetValues(typeof(IOEventType)))
+                _eventTypeToCallback[eventType] = callback;
+        }
         public void SubscribeToEvent(IOEventType eventType, ControllerEventDelegate callback)
         {
             _eventTypeToCallback[eventType] = callback;
