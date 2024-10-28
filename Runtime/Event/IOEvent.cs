@@ -10,7 +10,7 @@ namespace MychIO.Event
         SerialDeviceReadError,
         HidDeviceReadError,
         Debug,
-
+        ReconnectionError,
     }
     public delegate void ControllerEventDelegate(
         IOEventType eventType,
