@@ -79,13 +79,14 @@ Then pass the callbacks into the instantiated IOManager
 
 Event types are represented as Enums in the MychIO.Eveent class under IOEventType
 
-| Event Enum Name         | Information                                    |
-| ----------------------- | ---------------------------------------------- |
-| `Attach`                | `Sent on controlled device connect`            |
-| `Detach`                | `Sent on controlled device disconnect`         |
-| `ConnectionError`       | `Sent on failure to establsh connecton`        |
-| `SerialDeviceReadError` | `Sent on failure of read loop for serial port` |
-| `HidDeviceReadError`    | `Sent on failure of read  loop for hid device` |
+| Event Enum Name         | Information                                            |
+| ----------------------- | ------------------------------------------------------ |
+| `Attach`                | `Sent on controlled device connect`                    |
+| `Detach`                | `Sent on controlled device disconnect`                 |
+| `ConnectionError`       | `Sent on failure to establsh connecton`                |
+| `SerialDeviceReadError` | `Sent on failure of read loop for serial port`         |
+| `HidDeviceReadError`    | `Sent on failure of read  loop for hid device`         |
+| `ReconnectionError`     | `Sent on exception thrown during Reconnection attempt` |
 
 ## Connecting To Devices
 
@@ -285,12 +286,18 @@ This will execute all callbacks passed to the queue every frame
 
 In case of failure you can use the following methods to determine a devices status or attempt to restore the connection/read loop:
 
+### IsReading
+
 ```C#
 public bool IsReading(DeviceClassification deviceClassification)
 ```
 
 - True if the device is currently being read from (no action needed).
-- False if it is not running the reading loop from the device. You should call StartReading method to start reading again.
+- False if it is not running the reading loop from the device. You should call StartReading method to start reading again. It can also indicate that the device is not connected
+
+### StartReading
+
+Attempts to restart the read loop for the connected device (If device is not connected this will fail and return false)
 
 ```C#
 public bool StartReading(DeviceClassification deviceClassification)
@@ -299,12 +306,20 @@ public bool StartReading(DeviceClassification deviceClassification)
 - True if the device has started the reading loop succesfully
 - False if the device could not re-establish the device reading loop (Should call ReConnect)
 
+### IsConnected
+
+Checks if device port is open and can start reading
+
 ```C#
 public bool IsConnected(DeviceClassification deviceClassification)
 ```
 
 - True if device is connected and not ready to read
 - False if device is not connected and not ready to read
+
+### Reconnect
+
+If called this will recreate the device as if you are calling `AddTouchDevice`, `AddButtonRing`, etc methods, it will also start reading automatically so no need to call StartReading(). Only to be used as a last ditch effort before just Destorying and recreating the IOManager. If there is a hard exception in this method it will throw a IOEventType.ReconnectionError Event
 
 ```C#
 public bool ReConnect(DeviceClassification deviceClassification)

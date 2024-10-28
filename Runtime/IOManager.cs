@@ -342,7 +342,7 @@ namespace MychIO
             }
             catch (Exception e)
             {
-                handleEvent(IOEventType.ConnectionError, deviceClassification, $"Exception occured when trying to reconnect device {e.Message}");
+                handleEvent(IOEventType.ReconnectionError, deviceClassification, $"Exception occured when trying to reconnect device {e.Message}");
             }
             return false;
         }
