@@ -125,9 +125,10 @@ namespace MychIO
         }
         public void AddDeviceErrorHandler(IDeviceErrorHandler errorHandler)
         {
-            _deviceErrorHandler = errorHandler;
+            if(_deviceErrorHandler is null)
+                _deviceErrorHandler = errorHandler;
         }
-        public void RemoveDeviceErrorHandler(DeviceClassification deviceType)
+        public void RemoveDeviceErrorHandler()
         {
             _deviceErrorHandler = null;
         }
