@@ -75,6 +75,32 @@ Then pass the callbacks into the instantiated IOManager
     _ioManager.SubscribeToEvents(eventCallbacks);
 ```
 
+Using this method:
+
+```C#
+public void SubscribeToEvents(IDictionary<IOEventType, ControllerEventDelegate> eventSubscriptions)
+```
+
+Or to subscribe to an individual event or update the subscription:
+
+```C#
+public void SubscribeToEvent(IOEventType eventType, ControllerEventDelegate callback)
+```
+
+Alternatively you can subscribe to all events with a single callback using the following method:
+
+```C#
+public void SubscribeToAllEvents(ControllerEventDelegate callback)
+```
+
+### Handling all fallback events
+
+As an alternative to callbacks a use of a hook class can be passed to handle events instead of callbacks directly simply implement the interface MychIO.IDeviceErrorHandler and pass it to the following method on IOManager:
+
+```C#
+public void AddDeviceErrorHandler(IDeviceErrorHandler errorHandler)
+```
+
 ### Types of events
 
 Event types are represented as Enums in the MychIO.Eveent class under IOEventType
