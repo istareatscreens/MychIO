@@ -27,6 +27,9 @@ namespace MychIO
         // Event System
         protected IDictionary<IOEventType, ControllerEventDelegate> _eventTypeToCallback = new Dictionary<IOEventType, ControllerEventDelegate>();
 
+        // Device Error Handler
+        IDeviceErrorHandler? _deviceErrorHandler = null;
+
         public IOManager() { }
 
         public void AddDeviceByName(
@@ -119,6 +122,14 @@ namespace MychIO
                 DeviceClassification.LedDevice,
                 ConvertDictionary(new Dictionary<Enum, Action<Enum, Enum>>())
             );
+        }
+        public void AddDeviceErrorHandler(IDeviceErrorHandler errorHandler)
+        {
+            _deviceErrorHandler = errorHandler;
+        }
+        public void RemoveDeviceErrorHandler(DeviceClassification deviceType)
+        {
+            _deviceErrorHandler = null;
         }
 
         private IDictionary<Enum, Action<Enum, Enum>> ConvertDictionary<T1, T2>(IDictionary<T1, Action<T1, T2>> dictionary) where T1 : Enum where T2 : Enum
@@ -378,6 +389,9 @@ namespace MychIO
                 return;
             }
             eventDelegate(eventType, deviceType, message);
+
+            if (_deviceErrorHandler is not null)
+                _deviceErrorHandler.Handle(eventType, deviceType, message);
         }
 
     }
