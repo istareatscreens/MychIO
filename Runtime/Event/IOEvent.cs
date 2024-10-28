@@ -8,7 +8,9 @@ namespace MychIO.Event
         Detach,
         ConnectionError,
         SerialDeviceReadError,
+        HidDeviceReadError,
         Debug,
+
     }
     public delegate void ControllerEventDelegate(
         IOEventType eventType,

@@ -101,7 +101,7 @@ namespace MychIO.Connection.HidDevice
             var eventReceivedCallback = new UnityHidApiPlugin.EventCallbackDelegate(
                 (string message) =>
                 {
-                    _manager.handleEvent(IOEventType.ConnectionError, _device.GetClassification(), _device.GetType().ToString() + " Error: " + message);
+                    _manager.handleEvent(IOEventType.HidDeviceReadError, _device.GetClassification(), _device.GetType().ToString() + " Error: " + message);
                 }
             );
 

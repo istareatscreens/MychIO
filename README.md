@@ -75,6 +75,18 @@ Then pass the callbacks into the instantiated IOManager
     _ioManager.SubscribeToEvents(eventCallbacks);
 ```
 
+### Types of events
+
+Event types are represented as Enums in the MychIO.Eveent class under IOEventType
+
+| Event Enum Name         | Information                                    |
+| ----------------------- | ---------------------------------------------- |
+| `Attach`                | `Sent on controlled device connect`            |
+| `Detach`                | `Sent on controlled device disconnect`         |
+| `ConnectionError`       | `Sent on failure to establsh connecton`        |
+| `SerialDeviceReadError` | `Sent on failure of read loop for serial port` |
+| `HidDeviceReadError`    | `Sent on failure of read  loop for hid device` |
+
 ## Connecting To Devices
 
 Currently this system supports three device types specified in `MychIO.Device.DeviceClassification`.
@@ -268,6 +280,8 @@ To execute the Subscription callbacks simply add the following to your Update() 
 This will execute all callbacks passed to the queue every frame
 
 ## Fallback/Status methods
+
+**Warning: these methods introduce a lot of overhead (particularly for HID devices) and should only be called in emergency situations**
 
 In case of failure you can use the following methods to determine a devices status or attempt to restore the connection/read loop:
 
