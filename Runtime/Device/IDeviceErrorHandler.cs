@@ -9,6 +9,6 @@ namespace MychIO.Device
 {
     public interface IDeviceErrorHandler
     {
-        void Handle(IOEventType eventType,DeviceClassification deviceType,string msg);
+        void Handle(IOEventType eventType, DeviceClassification deviceType, string msg);
     }
 }

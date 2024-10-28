@@ -3,13 +3,13 @@ using System.Collections.Generic;
 using System.Threading.Tasks;
 using MychIO.Device;
 using System.Linq;
-using UnityEngine;
 using MychIO.Event;
 using System.Collections.Concurrent;
 
 namespace MychIO
 {
     using DeviceClassificationToInputAction = Dictionary<DeviceClassification, IDictionary<Enum, Action<Enum, Enum>>>;
+#nullable enable
     public class IOManager
     {
 
@@ -34,9 +34,9 @@ namespace MychIO
 
         public void AddDeviceByName(
             string deviceName,
-            IDictionary<string, dynamic> connectionProperties = null,
+            IDictionary<string, dynamic>? connectionProperties = null,
             DeviceClassification deviceClassification = DeviceClassification.Undefined,
-            IDictionary<Enum, Action<Enum, Enum>> inputSubscriptions = null
+            IDictionary<Enum, Action<Enum, Enum>>? inputSubscriptions = null
         )
         {
             if (DeviceClassification.Undefined == deviceClassification)
@@ -80,8 +80,8 @@ namespace MychIO
 
         public void AddTouchPanel(
             string deviceName,
-            IDictionary<string, dynamic> connectionProperties = null,
-            IDictionary<TouchPanelZone, Action<TouchPanelZone, InputState>> inputSubscriptions = null
+            IDictionary<string, dynamic>? connectionProperties = null,
+            IDictionary<TouchPanelZone, Action<TouchPanelZone, InputState>>? inputSubscriptions = null
         )
         {
             EnsureAllInputStatesAreAccountedFor(inputSubscriptions);
@@ -96,8 +96,8 @@ namespace MychIO
 
         public void AddButtonRing(
             string deviceName,
-            IDictionary<string, dynamic> connectionProperties = null,
-            IDictionary<ButtonRingZone, Action<ButtonRingZone, InputState>> inputSubscriptions = null
+            IDictionary<string, dynamic>? connectionProperties = null,
+            IDictionary<ButtonRingZone, Action<ButtonRingZone, InputState>>? inputSubscriptions = null
         )
         {
             EnsureAllInputStatesAreAccountedFor(inputSubscriptions);
@@ -112,7 +112,7 @@ namespace MychIO
 
         public void AddLedDevice(
             string deviceName,
-            IDictionary<string, dynamic> connectionProperties = null
+            IDictionary<string, dynamic>? connectionProperties = null
         )
         {
             AddDeviceByName
@@ -125,16 +125,23 @@ namespace MychIO
         }
         public void AddDeviceErrorHandler(IDeviceErrorHandler errorHandler)
         {
-            if(_deviceErrorHandler is null)
-                _deviceErrorHandler = errorHandler;
+            if (_deviceErrorHandler is null)
+            {
+                return;
+            }
+            _deviceErrorHandler = errorHandler;
         }
         public void RemoveDeviceErrorHandler()
         {
             _deviceErrorHandler = null;
         }
 
-        private IDictionary<Enum, Action<Enum, Enum>> ConvertDictionary<T1, T2>(IDictionary<T1, Action<T1, T2>> dictionary) where T1 : Enum where T2 : Enum
+        private IDictionary<Enum, Action<Enum, Enum>>? ConvertDictionary<T1, T2>(IDictionary<T1, Action<T1, T2>>? dictionary) where T1 : Enum where T2 : Enum
         {
+            if (null == dictionary)
+            {
+                return null;
+            }
             var newDict = new Dictionary<Enum, Action<Enum, Enum>>();
             foreach (var kvp in dictionary)
             {
@@ -240,7 +247,7 @@ namespace MychIO
             }
         }
 
-        private void AddDeviceInputSubscriptionsToTagMap<T1, T2>(IDictionary<T1, Action<T1, T2>>
+        private void AddDeviceInputSubscriptionsToTagMap<T1, T2>(IDictionary<T1, Action<T1, T2>>?
          inputSubscriptions,
            DeviceClassification classification,
           string tag
@@ -248,6 +255,11 @@ namespace MychIO
         {
             // EnsureAllInputStatesAreAccountedFor(inputSubscriptions);
             var convertedSubscriptions = ConvertDictionary(inputSubscriptions);
+
+            if (null == convertedSubscriptions)
+            {
+                throw new Exception($"Trying to pass null as input subscriptions for device {classification} and tag {tag}");
+            }
 
             if (!_tagToDeviceClassificationToDeviceInputAction.ContainsKey(tag))
             {
@@ -259,9 +271,14 @@ namespace MychIO
 
         // All Enum otates must be accounted for, could potentially replace them with empty callbacks in the future
         // Instead of throwing an error
-        private void EnsureAllInputStatesAreAccountedFor<T1, T2>(IDictionary<T1, Action<T1, T2>> inputSubscriptions)
+        private void EnsureAllInputStatesAreAccountedFor<T1, T2>(IDictionary<T1, Action<T1, T2>>? inputSubscriptions)
          where T1 : Enum where T2 : Enum
         {
+            if (null == inputSubscriptions)
+            {
+                return;
+            }
+
             foreach (T1 zone in Enum.GetValues(typeof(T1)))
             {
                 if (inputSubscriptions.ContainsKey(zone))
@@ -274,10 +291,12 @@ namespace MychIO
         }
 
         // Events
-        public void SubscribeAllEvents(ControllerEventDelegate callback)
+        public void SubscribeToAllEvents(ControllerEventDelegate callback)
         {
             foreach (IOEventType eventType in Enum.GetValues(typeof(IOEventType)))
+            {
                 _eventTypeToCallback[eventType] = callback;
+            }
         }
         public void SubscribeToEvent(IOEventType eventType, ControllerEventDelegate callback)
         {
@@ -397,7 +416,9 @@ namespace MychIO
             eventDelegate(eventType, deviceType, message);
 
             if (_deviceErrorHandler is not null)
+            {
                 _deviceErrorHandler.Handle(eventType, deviceType, message);
+            }
         }
 
     }
