@@ -95,7 +95,7 @@ public void SubscribeToAllEvents(ControllerEventDelegate callback)
 
 ### Handling all fallback events
 
-As an alternative to callbacks a use of a hook class can be passed to handle events instead of callbacks directly simply implement the interface MychIO.IDeviceErrorHandler and pass it to the following method on IOManager:
+As an alternative to callbacks a hook class can be passed to handle events instead of callbacks directly. Implement the interface MychIO.IDeviceErrorHandler and pass it to the following method on IOManager:
 
 ```C#
 public void AddDeviceErrorHandler(IDeviceErrorHandler errorHandler)
@@ -205,13 +205,13 @@ public void AddLedDevice(
 Where,
 
 - deviceName is the unique name of the device e.g. (AdxButtonRing)
-- connectionProperties - stores the properties specific to their connection interface. These can be used to overwrite the default device connection properties. These properties implement the `MychIO.Connection.IConnectionProperties` interface and can be easily serialized/unserialized using the an instantiated IConnection class (IDictionary<string, dynamic> <==> concrete IConnection object)
+- connectionProperties - stores the properties specific to their connection interface. These can be used to overwrite the default device connection properties. These properties implement the `MychIO.Connection.IConnectionProperties` interface and can be easily serialized/unserialized using the instantiated IConnection class (IDictionary<string, dynamic> <==> concrete IConnection object)
 - inputSubscriptions - Callbacks that are triggered by controller interaction mapped by device interaction zone enum
 
 ## Adding Custom Connection Properties to A Device
 
-To add connection properties to a device you acquire instantiate a new ConnectionProperties class for specific device you can instantiate an appropriate IConnnectionProperties class and use its copy constructor. You can call the GetDefaultConnectionProperties method on the specific device you want to generate a properties object for and then pass whatever other properties you wish to change.
-Then call the `GetProperties` method on this properties object to serialize them.
+To add connection properties to a device you instantiate a new ConnectionProperties class specific to the device you would like to attach. Then instantiate an appropriate IConnnectionProperties class and use its copy constructor. You can call the GetDefaultConnectionProperties method on the specific device you want to generate a properties object for and then pass whatever other properties you wish to change.
+Then call the `GetProperties` method on this properties object to serialize the properties into a type agnostic dictionary.
 
 ```C#
         var propertiesTouchPanel = new SerialDeviceProperties(
@@ -238,7 +238,7 @@ The current implemented devices have the following connection objects:
 
 ## Writing to Devices
 
-Once the connection to a device is established you can send commands to execute specific functions using the follow IOManager method:
+Once the connection to a device is established, send commands to execute specific functions using the follow IOManager method:
 
 ```C#
 public async Task WriteToDevice(DeviceClassification deviceClassification, params Enum[] command)
@@ -254,7 +254,7 @@ Where,
 
 ## Changing Interaction Subscriptions
 
-Since controller input needs to be dynamic based on scene (i.e. menu versus in game) callbacks can be changed and reloaded using the following functions.
+Controller input needs to be dynamic based on scene (i.e. menu versus in game) callbacks can be changed and reloaded using the following functions.
 
 ### Adding/Replacing Input (Subscription) callbacks
 
@@ -360,7 +360,13 @@ For integration of other controllers, testing, contributing there exists a unity
 
 ## Adding a Device
 
-To integrate a Serial or HID device it is as simple as going copying one of the already used classes `AdxTouchPanel` or `AdxIO4ButtonRing` or `AdexLedDevice` and modifying it to meet your needs.
+To integrate a Serial or HID device create a class file in ButtonRing, LedDevice or TouchPanel and inheriting from abstract class `MychIO.Device.Device<T1, T2, T3>`, where:
+
+- T1 : Enum - device Interactions e.g. LedInteractions, TouchPanelZone, ButtonRingZone (what you expect to be triggered by your device)
+- T2: Enum - State change caused by an interaction e.g. InputState (On/Off) in most cases
+- T3 : Class - [MychIO.Connection.ConnectionProperties](https://github.com/istareatscreens/MychIO/blob/965e204e8b347dd04bf67943d92742c2ed5ccbb7/Runtime/Connection/ConnectionProperties.cs) class e.g. SerialDeviceProperties, HidDeviceProperties
+
+This abstract class is split into two partial classes ([BuildProperties](https://github.com/istareatscreens/MychIO/blob/965e204e8b347dd04bf67943d92742c2ed5ccbb7/Runtime/Device/Device.BuildProperties.cs) and [Base](https://github.com/istareatscreens/MychIO/blob/965e204e8b347dd04bf67943d92742c2ed5ccbb7/Runtime/Device/Device.Base.cs)). You must override all static methods located in Device.BuildProperties for proper instantiation of the device to occur.
 
 After creation of your custom controller interface class simply go to DeviceFactory and add your deviceName to the following Dictionary to facilitate loading it using IOManager:
 
@@ -372,6 +378,21 @@ private static Dictionary<string, Type> _deviceNameToType = new()
     { AdxHIDButtonRing.GetDeviceName(), typeof(AdxHIDButtonRing) },
     { AdxLedDevice.GetDeviceName(), typeof(AdxLedDevice) },
     // Add other devices here...
+};
+```
+
+## Adding a Connection
+
+To create a new connection class inherit from the abstract class MychIO.Connection.Connection. The abstract Connection class is split into two partial classes ([Base](https://github.com/istareatscreens/MychIO/blob/965e204e8b347dd04bf67943d92742c2ed5ccbb7/Runtime/Connection/Connection.Base.cs) and [BuildProperties](https://github.com/istareatscreens/MychIO/blob/965e204e8b347dd04bf67943d92742c2ed5ccbb7/Runtime/Connection/Connection.BuildProperties.cs)). Note all static methods in the partial class BuildProperties must be overridden in the child class for proper instantiation of it.
+
+After creation of your custom connection class you must add your class to the MychIO.Connection.ConnectionFactory dictionary:
+
+```C#
+private static Dictionary<ConnectionType, Type> _connectionTypeToConnection = new()
+{
+    { ConnectionType.HID, typeof(HidDeviceConnection) },
+    { ConnectionType.SerialDevice, typeof(SerialDeviceConnection) }
+    // Add other connections here...
 };
 ```
 
