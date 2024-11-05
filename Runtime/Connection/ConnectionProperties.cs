@@ -12,7 +12,7 @@ namespace MychIO.Connection
     {
 
         public string Id { get; private set; }
-        private Queue<string> _errors;
+        private Queue<string> _errors = new Queue<string>();
         private IDictionary<string, dynamic> _properties = new Dictionary<string, dynamic>();
         public IDictionary<string, dynamic> GetProperties() => _properties;
 
