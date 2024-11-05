@@ -133,6 +133,7 @@ namespace MychIO.Device
         // just implement them in all devices objects
         public abstract void ReadData(byte[] data);
         public abstract void ReadData(IntPtr data);
+        public abstract void ReadData(string data);
 
         public abstract Task Write(params Enum[] interactions);
 

@@ -265,6 +265,11 @@ namespace MychIO.Device
             return Task.CompletedTask;
         }
 
+        public override void ReadData(string data)
+        {
+            throw new NotImplementedException();
+        }
+
 #if UNITY_EDITOR
         public static string formatAdxTouchPanelOutput(byte[] data)
         {

@@ -202,11 +202,18 @@ namespace MychIO.Device
         {
             return Task.CompletedTask;
         }
-        public override void ReadData(byte[] data) { }
-
+        public override void ReadData(byte[] data)
+        {
+            throw new NotImplementedException();
+        }
+        public override void ReadData(string data)
+        {
+            throw new NotImplementedException();
+        }
         public override Task OnDisconnectWrite()
         {
             return Task.CompletedTask;
         }
+
     }
 }

@@ -5,13 +5,16 @@ using MychIO.Device;
 using System.Linq;
 using MychIO.Event;
 using System.Collections.Concurrent;
+using UnityEngine;
+using MychIO.Unity;
 
 namespace MychIO
 {
-    using DeviceClassificationToInputAction = Dictionary<DeviceClassification, IDictionary<Enum, Action<Enum, Enum>>>;
 #nullable enable
-    public class IOManager
+    using DeviceClassificationToInputAction = Dictionary<DeviceClassification, IDictionary<Enum, Action<Enum, Enum>>>;
+    public class IOManager : MonoBehaviour
     {
+        internal static CoroutineRunner? CoroutineRunner;
 
         public const string STANDARD_INPUT = "standard-input";
         // Handle concurrency from the input system
@@ -30,7 +33,14 @@ namespace MychIO
         // Device Error Handler
         IDeviceErrorHandler? _deviceErrorHandler = null;
 
-        public IOManager() { }
+        public IOManager()
+        {
+            // Ignore warning about using new in a non ScriptableObject or MonoBehaviour
+#pragma warning disable 
+            CoroutineRunner = CoroutineRunner.Instance;
+            CoroutineRunner?.StopAllCoroutines();
+#pragma warning restore
+        }
 
         public void AddDeviceByName(
             string deviceName,
@@ -72,9 +82,15 @@ namespace MychIO
                 );
                 _deviceClassificationToDevice.Add(device.GetClassification(), device);
 
+
                 // Save for reloading
                 _tagToDeviceClassificationToDeviceInputAction[STANDARD_INPUT] =
-                new DeviceClassificationToInputAction { { deviceClassification, inputSubscriptions } };
+                new DeviceClassificationToInputAction {
+                    {
+                        deviceClassification,
+                        inputSubscriptions ?? new Dictionary<Enum, Action<Enum, Enum>>()
+                    }
+                };
             });
         }
 
@@ -123,6 +139,21 @@ namespace MychIO
                 ConvertDictionary(new Dictionary<Enum, Action<Enum, Enum>>())
             );
         }
+
+        public void AddKeyboard(
+            string deviceName,
+            IDictionary<string, dynamic>? connectionProperties = null
+        )
+        {
+            AddDeviceByName
+            (
+                deviceName,
+                connectionProperties,
+                DeviceClassification.Keyboard,
+                ConvertDictionary(new Dictionary<Enum, Action<Enum, Enum>>())
+            );
+        }
+
         public void AddDeviceErrorHandler(IDeviceErrorHandler errorHandler)
         {
             if (_deviceErrorHandler is null)
@@ -169,6 +200,10 @@ namespace MychIO
             _deviceClassificationToDevice = new Dictionary<DeviceClassification, IDevice>();
             _deviceClassificationToDeviceInputAction = new Dictionary<DeviceClassification, IDictionary<Enum, Action<Enum, Enum>>>();
             _eventTypeToCallback = new Dictionary<IOEventType, ControllerEventDelegate>();
+            if (null != CoroutineRunner)
+            {
+                CoroutineRunner.StopAllCoroutines();
+            }
         }
 
         // Callbacks for Input
@@ -399,6 +434,16 @@ namespace MychIO
                 handleEvent(IOEventType.ConnectionError, deviceClassification, $"Exception occured when trying to start reading from the device {e.Message}");
                 return false;
             }
+            return true;
+        }
+
+        public bool StopReading(DeviceClassification deviceClassification)
+        {
+            if (!_deviceClassificationToDevice.TryGetValue(deviceClassification, out IDevice device))
+            {
+                return false;
+            }
+            device.StopReading();
             return true;
         }
 

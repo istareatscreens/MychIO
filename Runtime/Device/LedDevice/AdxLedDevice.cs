@@ -131,6 +131,10 @@ namespace MychIO.Device
         {
             throw new NotImplementedException();
         }
+        public override void ReadData(string data)
+        {
+            throw new NotImplementedException();
+        }
 
     }
 
