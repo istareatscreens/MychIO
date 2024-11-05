@@ -24,6 +24,11 @@ namespace MychIO.Device
             throw new NotImplementedException("Error GetDefaultConnectionProperties method not overwitten in base class");
         }
 
+        public static T3 GetDefaultDeviceProperties()
+        {
+            throw new NotImplementedException("Error GetDefaulDeviceProperties method not overwitten in base class");
+        }
+
         public abstract string DeviceName();
 
         // Helper method to access these static methods

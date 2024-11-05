@@ -33,6 +33,7 @@ namespace MychIO.Device
             dtr: false,
             rts: false
         );
+        public new static SerialDeviceProperties GetDefaultDeviceProperties() => (SerialDeviceProperties)GetDefaultConnectionProperties();
         // ** Connection Properties 
         private static readonly byte[] NO_INPUT_PACKET = new byte[]
         {

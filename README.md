@@ -210,12 +210,12 @@ Where,
 
 ## Adding Custom Connection Properties to A Device
 
-To add connection properties to a device you instantiate a new ConnectionProperties class specific to the device you would like to attach. Then instantiate an appropriate IConnnectionProperties class and use its copy constructor. You can call the GetDefaultConnectionProperties method on the specific device you want to generate a properties object for and then pass whatever other properties you wish to change.
+To add connection properties to a device you instantiate a new ConnectionProperties class specific to the device you would like to attach. Then instantiate an appropriate IConnnectionProperties class and use its copy constructor. You can call the GetDefaultDeviceProperties method on the specific device you want to generate a properties object for and then pass whatever other properties you wish to change.
 Then call the `GetProperties` method on this properties object to serialize the properties into a type agnostic dictionary.
 
 ```C#
         var propertiesTouchPanel = new SerialDeviceProperties(
-            (SerialDeviceProperties)AdxTouchPanel.GetDefaultConnectionProperties(),
+            AdxTouchPanel.GetDefaultDeviceProperties(),
             comPortNumber: "COM10"
         ).GetProperties();
 

@@ -50,6 +50,8 @@ namespace MychIO.Device
             leftBytesToTruncate: LEFT_BYTES_TO_TRUNCATE,
             bytesToRead: BYTES_TO_READ
         );
+
+        public new static HidDeviceProperties GetDefaultDeviceProperties() => (HidDeviceProperties)GetDefaultConnectionProperties();
         // ** Connection Properties
         private static readonly byte[] NO_INPUT_PACKET = new byte[]
         {
