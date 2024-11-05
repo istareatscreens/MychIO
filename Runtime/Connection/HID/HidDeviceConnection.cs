@@ -39,7 +39,8 @@ namespace MychIO.Connection.HidDevice
                 properties.ProductId,
                 properties.BufferSize,
                 properties.LeftBytesToTruncate,
-                properties.BytesToRead
+                properties.BytesToRead,
+                properties.PollingRateMs
             );
             if (_pluginHandle == IntPtr.Zero)
             {

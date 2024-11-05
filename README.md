@@ -364,9 +364,9 @@ To integrate a Serial or HID device create a class file in ButtonRing, LedDevice
 
 - T1 : Enum - device Interactions e.g. LedInteractions, TouchPanelZone, ButtonRingZone (what you expect to be triggered by your device)
 - T2: Enum - State change caused by an interaction e.g. InputState (On/Off) in most cases
-- T3 : Class - [MychIO.Connection.ConnectionProperties](https://github.com/istareatscreens/MychIO/blob/965e204e8b347dd04bf67943d92742c2ed5ccbb7/Runtime/Connection/ConnectionProperties.cs) class e.g. SerialDeviceProperties, HidDeviceProperties
+- T3 : Class - [MychIO.Connection.ConnectionProperties](https://github.com/istareatscreens/MychIO/blob/master/Runtime/Connection/ConnectionProperties.cs) class e.g. SerialDeviceProperties, HidDeviceProperties
 
-This abstract class is split into two partial classes ([BuildProperties](https://github.com/istareatscreens/MychIO/blob/965e204e8b347dd04bf67943d92742c2ed5ccbb7/Runtime/Device/Device.BuildProperties.cs) and [Base](https://github.com/istareatscreens/MychIO/blob/965e204e8b347dd04bf67943d92742c2ed5ccbb7/Runtime/Device/Device.Base.cs)). You must override all static methods located in Device.BuildProperties for proper instantiation of the device to occur.
+This abstract class is split into two partial classes ([BuildProperties](https://github.com/istareatscreens/MychIO/blob/master/Runtime/Device/Device.BuildProperties.cs) and [Base](https://github.com/istareatscreens/MychIO/blob/master/Runtime/Device/Device.Base.cs)). You must override all static methods located in Device.BuildProperties for proper instantiation of the device to occur.
 
 After creation of your custom controller interface class simply go to DeviceFactory and add your deviceName to the following Dictionary to facilitate loading it using IOManager:
 
@@ -383,7 +383,7 @@ private static Dictionary<string, Type> _deviceNameToType = new()
 
 ## Adding a Connection
 
-To create a new connection class inherit from the abstract class MychIO.Connection.Connection. The abstract Connection class is split into two partial classes ([Base](https://github.com/istareatscreens/MychIO/blob/965e204e8b347dd04bf67943d92742c2ed5ccbb7/Runtime/Connection/Connection.Base.cs) and [BuildProperties](https://github.com/istareatscreens/MychIO/blob/965e204e8b347dd04bf67943d92742c2ed5ccbb7/Runtime/Connection/Connection.BuildProperties.cs)). Note all static methods in the partial class BuildProperties must be overridden in the child class for proper instantiation of it.
+To create a new connection class inherit from the abstract class MychIO.Connection.Connection. The abstract Connection class is split into two partial classes ([Base](https://github.com/istareatscreens/MychIO/blob/master/Runtime/Connection/Connection.Base.cs) and [BuildProperties](https://github.com/istareatscreens/MychIO/blob/master/Runtime/Connection/Connection.BuildProperties.cs)). Note all static methods in the partial class BuildProperties must be overridden in the child class for proper instantiation of it.
 
 After creation of your custom connection class you must add your class to the MychIO.Connection.ConnectionFactory dictionary:
 

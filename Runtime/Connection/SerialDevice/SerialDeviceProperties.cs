@@ -20,7 +20,7 @@ namespace MychIO.Connection.SerialDevice
         // Constructor that initializes all properties
         public SerialDeviceProperties(
             string comPortNumber = "COM21",
-            int pollingRateMs = 100,
+            int pollingRateMs = 0,
             int bufferByteLength = 9,
             int writeTimeoutMS = DEFAULT_WRITE_TIMEOUT_MS,
             int portNumber = 0,

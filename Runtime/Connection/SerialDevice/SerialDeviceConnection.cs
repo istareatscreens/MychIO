@@ -63,7 +63,12 @@ namespace MychIO.Connection.SerialDevice
             Task.Run(async () =>
             {
                 await _device.OnStartWrite();
-                await RecieveData();
+                if (_pollTimeoutMs > 0)
+                {
+                    await ReceiveDataPolling();
+                    return;
+                }
+                await ReceiveData();
             });
 
             _manager.handleEvent(IOEventType.Attach, _device.GetClassification(), _device.GetType().ToString() + " Device connected");
@@ -71,7 +76,7 @@ namespace MychIO.Connection.SerialDevice
             return Task.CompletedTask;
         }
 
-        private async Task RecieveData()
+        private async Task ReceiveDataPolling()
         {
             try
             {
@@ -84,6 +89,32 @@ namespace MychIO.Connection.SerialDevice
                     if (bytesRead < _bufferByteLength) { continue; } // Handle case where not enough data to read
                     _device.ReadData(buffer);
                     await Task.Delay(_pollTimeoutMs, _cancellationTokenSource.Token);
+                }
+            }
+            catch (TaskCanceledException)
+            {
+                // Nothing to do here event was sent to detach
+            }
+            catch (Exception e)
+            {
+                // Throw event here potentially in the future for now just disconnect
+                _manager.handleEvent(IOEventType.ConnectionError, _device.GetClassification(), _device.GetType().ToString() + "device connection failed due to following exception: " + e);
+                await Disconnect();
+            }
+        }
+
+        private async Task ReceiveData()
+        {
+            try
+            {
+                while (!_cancellationTokenSource.Token.IsCancellationRequested)
+                {
+                    //int bytesRead = _serialPort.Read(buffer, 0, _bufferByteLength);
+                    int bytesRead = _serialPort.BytesToRead;
+                    byte[] buffer = new byte[bytesRead];
+                    _serialPort.Read(buffer, 0, bytesRead);
+                    if (bytesRead < _bufferByteLength) { continue; } // Handle case where not enough data to read
+                    _device.ReadData(buffer);
                 }
             }
             catch (TaskCanceledException)
@@ -150,7 +181,12 @@ namespace MychIO.Connection.SerialDevice
                 Task.Run(async () =>
                 {
                     await _device.OnStartWrite();
-                    await RecieveData();
+                    if (_pollTimeoutMs > 0)
+                    {
+                        await ReceiveDataPolling();
+                        return;
+                    }
+                    await ReceiveData();
                 });
             }
         }

@@ -35,7 +35,8 @@ namespace MychIO.Connection.HidDevice
             int productId,
             int bufferSize,
             int leftBytesToTruncate,
-            int bytesToRead
+            int bytesToRead,
+            int pollingRateMs
         );
 
         [DllImport("UnityHidApiPlugin", CallingConvention = CallingConvention.Cdecl)]
