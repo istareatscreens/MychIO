@@ -11,6 +11,7 @@ namespace MychIO.Event
         HidDeviceReadError,
         Debug,
         ReconnectionError,
+        InvalidDevicePropertyError
     }
     public delegate void ControllerEventDelegate(
         IOEventType eventType,

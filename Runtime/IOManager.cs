@@ -5,6 +5,7 @@ using MychIO.Device;
 using System.Linq;
 using MychIO.Event;
 using System.Collections.Concurrent;
+using MychIO.Connection;
 
 namespace MychIO
 {
@@ -290,25 +291,6 @@ namespace MychIO
 
         }
 
-        // Events
-        public void SubscribeToAllEvents(ControllerEventDelegate callback)
-        {
-            foreach (IOEventType eventType in Enum.GetValues(typeof(IOEventType)))
-            {
-                _eventTypeToCallback[eventType] = callback;
-            }
-        }
-        public void SubscribeToEvent(IOEventType eventType, ControllerEventDelegate callback)
-        {
-            _eventTypeToCallback[eventType] = callback;
-        }
-
-        public void SubscribeToEvents(IDictionary<IOEventType, ControllerEventDelegate> eventSubscriptions)
-        {
-            // clone to prevent side effects
-            _eventTypeToCallback = new Dictionary<IOEventType, ControllerEventDelegate>(eventSubscriptions);
-        }
-
         // Fallback Methods
         public bool IsReading(DeviceClassification deviceClassification)
         {
@@ -400,6 +382,36 @@ namespace MychIO
                 return false;
             }
             return true;
+        }
+
+        // Device properties
+        public IDictionary<string, dynamic>? GetDeviceProperties(DeviceClassification deviceClassification)
+        {
+            if (!_deviceClassificationToDevice.TryGetValue(deviceClassification, out IDevice device))
+            {
+                return null;
+            }
+
+            return device.GetConnectionProperties().GetProperties();
+        }
+
+        // Events
+        public void SubscribeToAllEvents(ControllerEventDelegate callback)
+        {
+            foreach (IOEventType eventType in Enum.GetValues(typeof(IOEventType)))
+            {
+                _eventTypeToCallback[eventType] = callback;
+            }
+        }
+        public void SubscribeToEvent(IOEventType eventType, ControllerEventDelegate callback)
+        {
+            _eventTypeToCallback[eventType] = callback;
+        }
+
+        public void SubscribeToEvents(IDictionary<IOEventType, ControllerEventDelegate> eventSubscriptions)
+        {
+            // clone to prevent side effects
+            _eventTypeToCallback = new Dictionary<IOEventType, ControllerEventDelegate>(eventSubscriptions);
         }
 
         // For Internal use only

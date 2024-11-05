@@ -105,14 +105,16 @@ public void AddDeviceErrorHandler(IDeviceErrorHandler errorHandler)
 
 Event types are represented as Enums in the MychIO.Eveent class under IOEventType
 
-| Event Enum Name         | Information                                            |
-| ----------------------- | ------------------------------------------------------ |
-| `Attach`                | `Sent on controlled device connect`                    |
-| `Detach`                | `Sent on controlled device disconnect`                 |
-| `ConnectionError`       | `Sent on failure to establsh connecton`                |
-| `SerialDeviceReadError` | `Sent on failure of read loop for serial port`         |
-| `HidDeviceReadError`    | `Sent on failure of read  loop for hid device`         |
-| `ReconnectionError`     | `Sent on exception thrown during Reconnection attempt` |
+| Event Enum Name              | Information                                                   |
+| ---------------------------- | ------------------------------------------------------------- |
+| `Attach`                     | `Sent on controlled device connect`                           |
+| `Detach`                     | `Sent on controlled device disconnect`                        |
+| `ConnectionError`            | `Sent on failure to establsh connecton`                       |
+| `SerialDeviceReadError`      | `Sent on failure of read loop for serial port`                |
+| `HidDeviceReadError`         | `Sent on failure of read  loop for hid device`                |
+| `ReconnectionError`          | `Sent on exception thrown during Reconnection attempt`        |
+| `Debug`                      | `Used for debugging not to be used in production`             |
+| `InvalidDevicePropertyError` | `Sent when user defined property does not exist for a device` |
 
 ## Connecting To Devices
 
@@ -208,9 +210,32 @@ Where,
 - connectionProperties - stores the properties specific to their connection interface. These can be used to overwrite the default device connection properties. These properties implement the `MychIO.Connection.IConnectionProperties` interface and can be easily serialized/unserialized using the instantiated IConnection class (IDictionary<string, dynamic> <==> concrete IConnection object)
 - inputSubscriptions - Callbacks that are triggered by controller interaction mapped by device interaction zone enum
 
-## Adding Custom Connection Properties to A Device
+## Connection/Device Properties
 
-To add connection properties to a device you instantiate a new ConnectionProperties class specific to the device you would like to attach. Then instantiate an appropriate IConnnectionProperties class and use its copy constructor. You can call the GetDefaultDeviceProperties method on the specific device you want to generate a properties object for and then pass whatever other properties you wish to change.
+The current implemented devices have the following connection objects:
+
+| Device Concrete Class | ConnectionProperties Object |
+| --------------------- | --------------------------- |
+| `AdxTouchPanel`       | `SerialDeviceProperties`    |
+| `AdxLedDevice`        | `SerialDeviceProperties`    |
+| `AdxIO4ButtonRing`    | `HidDeviceProperties`       |
+| `AdxHIDButtonRing`    | `HidDeviceProperties`       |
+
+ConnectionProperties implement the standard interface [IConnectionproperties](https://github.com/istareatscreens/MychIO/blob/master/Runtime/Connection/IConnectionProperties.cs) that methods for serialization/unserialziation of properties. Allowing for generic handling of device properties.
+
+```C#
+        IDictionary<string, dynamic> GetProperties();
+```
+
+```C#
+        IConnectionProperties UpdateProperties(IDictionary<string, dynamic> updateProperties);
+```
+
+IConnectionProperties objects can emit InvalidDevicePropertyError events when a user provides invalid device properties.
+
+### Adding Custom Connection Properties to A Device
+
+To add connection properties to a device you instantiate a new ConnectionProperties class specific to the device you would like to attach. Then instantiate an appropriate IConnnectionProperties class and use its copy constructor. You can call the GetDefaultDeviceProperties method on the specific device you want to get the standard properties set for the device and then pass whatever other properties you wish to change.
 Then call the `GetProperties` method on this properties object to serialize the properties into a type agnostic dictionary.
 
 ```C#
@@ -227,14 +252,35 @@ Then call the `GetProperties` method on this properties object to serialize the 
         );
 ```
 
-The current implemented devices have the following connection objects:
+### Retreiving Device Properties
 
-| Device Concrete Class | ConnectionProperties Object |
-| --------------------- | --------------------------- |
-| `AdxTouchPanel`       | `SerialDeviceProperties`    |
-| `AdxLedDevice`        | `SerialDeviceProperties`    |
-| `AdxIO4ButtonRing`    | `HidDeviceProperties`       |
-| `AdxHIDButtonRing`    | `HidDeviceProperties`       |
+A Device class (e.g. AdxIO4ButtonRing) has the following methods for retrieving/creating device properties:
+
+```C#
+public static Type GetDevicePropertiesType()
+```
+
+Returns the IConnectionProperties concrete type for casting purposes
+
+```C#
+public static T3 GetDefaultDeviceProperties()
+```
+
+Returns the default concrete IConnectionProperties class (e.g. SerialDeviceConnectionProperties). This will return a hard copy of the standard device connection properties for that device.
+
+```C#
+public static IConnectionProperties GetDefaultConnectionProperties()
+```
+
+Does the same as GetDefaultDeviceProperties except it returns an IConnectionProperties interface.
+
+### Retrieving Set Device Properties
+
+On IOManager the following method can be used to retrieve the current set IConnectionProperties (Device properties) for a device:
+
+```C#
+public IDictionary<string, dynamic>? GetDeviceProperties(DeviceClassification deviceClassification)
+```
 
 ## Writing to Devices
 

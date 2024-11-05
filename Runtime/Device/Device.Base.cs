@@ -39,6 +39,14 @@ namespace MychIO.Device
             _connectionProperties = (null != connectionProperties) ?
                 defaultProperties.UpdateProperties(connectionProperties) :
                 defaultProperties;
+
+            // Send errors that occured when applying properties
+            foreach (var error in _connectionProperties.GetErrors())
+            {
+                manager.handleEvent(Event.IOEventType.InvalidDevicePropertyError, _classification, error);
+            }
+
+            // Connect
             _connection = ConnectionFactory.GetConnection(this, _connectionProperties, manager);
             Id = _connectionProperties.Id;
             _manager = manager;

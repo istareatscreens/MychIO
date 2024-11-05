@@ -10,9 +10,11 @@ namespace MychIO.Connection
     // WARNING! Member variables must be directly accessible (no {get; set;}) or it will break serialization/unserialization
     public abstract class ConnectionProperties : IConnectionProperties
     {
-        private IDictionary<string, dynamic> _properties = new Dictionary<string, dynamic>();
 
         public string Id { get; private set; }
+        private Queue<string> _errors;
+        private IDictionary<string, dynamic> _properties = new Dictionary<string, dynamic>();
+        public IDictionary<string, dynamic> GetProperties() => _properties;
 
         public IConnectionProperties UpdateProperties(IDictionary<string, dynamic> updateProperties)
         {
@@ -41,9 +43,16 @@ namespace MychIO.Connection
                 var value = field.GetValue(this);
                 if (null == value)
                 {
-                    continue;
+                    throw new Exception();
                 }
-                _properties[field.Name] = value;
+                try
+                {
+                    _properties[field.Name] = value;
+                }
+                catch (Exception)
+                {
+                    _errors.Enqueue($"Failed to populate property: {field.Name} on {GetType().Name},{field.Name},{GetType().Name}");
+                }
             }
         }
 
@@ -54,17 +63,26 @@ namespace MychIO.Connection
             {
                 if (!_properties.TryGetValue(field.Name, out var value))
                 {
-                    continue;
+                    throw new Exception();
                 }
                 try
                 {
                     field.SetValue(this, value);
                 }
-                catch (Exception) { }
+                catch (Exception)
+                {
+                    _errors.Enqueue($"Failed to apply property: {field.Name} on {GetType().Name},{field.Name},{GetType().Name}");
+                }
             }
         }
 
-        public IDictionary<string, dynamic> GetProperties() => _properties;
+        public IEnumerable<string> GetErrors()
+        {
+            while (0 < _errors.Count)
+            {
+                yield return _errors.Dequeue();
+            }
+        }
 
         public abstract ConnectionType GetConnectionType();
 

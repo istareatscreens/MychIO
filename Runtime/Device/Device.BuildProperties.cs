@@ -29,6 +29,11 @@ namespace MychIO.Device
             throw new NotImplementedException("Error GetDefaulDeviceProperties method not overwitten in base class");
         }
 
+        public static Type GetDevicePropertiesType()
+        {
+            return typeof(T3);
+        }
+
         public abstract string DeviceName();
 
         // Helper method to access these static methods
