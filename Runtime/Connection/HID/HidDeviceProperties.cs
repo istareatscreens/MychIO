@@ -27,7 +27,7 @@ namespace MychIO.Connection.HidDevice
             BufferSize = bufferSize;
             LeftBytesToTruncate = leftBytesToTruncate;
             BytesToRead = bytesToRead;
-            pollingRateMs = PollingRateMs;
+            PollingRateMs = pollingRateMs;
         }
 
         // Copy Constructor used for creating properties objects from default properties
