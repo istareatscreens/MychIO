@@ -166,7 +166,7 @@ namespace MychIO.Device
         public abstract void ReadDataDebounce(IntPtr intPtr);
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        protected void DebouncedHandleInputChange(T1 zone, Action callback)
+        protected void DebouncedHandleInputChange(T1 zone, Func<bool> callback)
         {
             DateTime now = DateTime.UtcNow;
 
@@ -176,9 +176,11 @@ namespace MychIO.Device
             {
                 return;
             }
-
-            _lastInputTriggerTimes[zone] = now;
-            callback();
+            var isInputChanged = callback();
+            if (isInputChanged)
+            {
+                _lastInputTriggerTimes[zone] = now;
+            }
         }
 
         public abstract Task Write(params Enum[] interactions);
