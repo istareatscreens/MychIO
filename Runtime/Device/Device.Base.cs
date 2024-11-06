@@ -1,5 +1,6 @@
 using System;
 using System.Collections.Generic;
+using System.Runtime.CompilerServices;
 using System.Threading.Tasks;
 using MychIO.Connection;
 
@@ -8,6 +9,10 @@ namespace MychIO.Device
     // Important class cannot have more than 1 constructor (see Device Factory)
     public abstract partial class Device<T1, T2, T3> : IDevice<T1, T2> where T1 : Enum where T3 : IConnectionProperties where T2 : Enum
     {
+        // Debounce Properties
+        protected readonly Dictionary<T1, DateTime> _lastInputTriggerTimes;
+        protected TimeSpan _debounceTime;
+
         protected const byte MOST_SIGNIFICANT_BIT = 0b10000000;
         protected const byte LEAST_SIGNIFICANT_BIT = 0b00000001;
         private string _id;
@@ -52,6 +57,14 @@ namespace MychIO.Device
             foreach (var error in _connectionProperties.GetErrors())
             {
                 manager.handleEvent(Event.IOEventType.InvalidDevicePropertyError, _classification, error);
+            }
+
+            // Setup debounce
+            _debounceTime = _connectionProperties.GetDebounceTime();
+            _lastInputTriggerTimes = new Dictionary<T1, DateTime>();
+            foreach (T1 zone in Enum.GetValues(typeof(T1)))
+            {
+                _lastInputTriggerTimes[zone] = DateTime.MinValue;
             }
 
             // Connect
@@ -149,6 +162,22 @@ namespace MychIO.Device
         // just implement them in all devices objects
         public abstract void ReadData(byte[] data);
         public abstract void ReadData(IntPtr data);
+
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public void DebouncedHandleInputChange(T1 zone, Action callback)
+        {
+            DateTime now = DateTime.UtcNow;
+
+            _lastInputTriggerTimes.TryGetValue(zone, out var lastTriggerTime);
+
+            if ((now - lastTriggerTime) < _debounceTime)
+            {
+                return;
+            }
+
+            _lastInputTriggerTimes[zone] = now;
+            callback();
+        }
 
         public abstract Task Write(params Enum[] interactions);
 

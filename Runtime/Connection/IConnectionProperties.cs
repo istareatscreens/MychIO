@@ -1,3 +1,4 @@
+using System;
 using System.Collections.Generic;
 using MychIO.Generic;
 
@@ -10,5 +11,6 @@ namespace MychIO.Connection
         IConnectionProperties UpdateProperties(IDictionary<string, dynamic> updateProperties);
         // Used internally to store read errors
         public IEnumerable<string> GetErrors();
+        public TimeSpan GetDebounceTime();
     }
 }

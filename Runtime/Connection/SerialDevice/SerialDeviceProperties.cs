@@ -20,7 +20,7 @@ namespace MychIO.Connection.SerialDevice
         // Constructor that initializes all properties
         public SerialDeviceProperties(
             string comPortNumber = "COM21",
-            int pollingRateMs = 100,
+            int pollingRateMs = 2,
             int bufferByteLength = 9,
             int writeTimeoutMS = DEFAULT_WRITE_TIMEOUT_MS,
             int portNumber = 0,
@@ -30,8 +30,10 @@ namespace MychIO.Connection.SerialDevice
             DataBits dataBits = DataBits.Eight,
             Handshake handshake = Handshake.None,
             bool dtr = false,
-            bool rts = false
-        )
+            bool rts = false,
+            // Device Class specific properties
+            int? debounceTimeMs = 0
+        ) : base(debounceTimeMs ?? 0)
         {
             ComPortNumber = comPortNumber;
             PollTimeoutMs = pollingRateMs;
@@ -62,8 +64,10 @@ namespace MychIO.Connection.SerialDevice
             DataBits? dataBits = null,
             Handshake? handshake = null,
             bool? dtr = null,
-            bool? rts = null
-        )
+            bool? rts = null,
+            // Device Class specific properties
+            int? debounceTimeMs = 0
+        ) : base(debounceTimeMs ?? existing.DebounceTimeMs)
         {
             ComPortNumber = comPortNumber ?? existing.ComPortNumber;
             PollTimeoutMs = pollingRateMs ?? existing.PollTimeoutMs;

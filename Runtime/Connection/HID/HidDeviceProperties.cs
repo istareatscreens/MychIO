@@ -17,8 +17,10 @@ namespace MychIO.Connection.HidDevice
             int bufferSize = 64,
             int leftBytesToTruncate = 0,
             int bytesToRead = 64,
-            int pollingRateMs = 0
-        )
+            int pollingRateMs = 0,
+            // Device Class specific properties
+            int? debounceTimeMs = 0
+        ) : base(debounceTimeMs ?? 0)
         {
             ProductId = productId;
             VendorId = vendorId;
@@ -37,8 +39,10 @@ namespace MychIO.Connection.HidDevice
             int? bufferSize = null,
             int? leftBytesToTruncate = null,
             int? bytesToRead = null,
-            int? pollingRateMs = null
-        )
+            int? pollingRateMs = null,
+            // Device Class specific properties
+            int? debounceTimeMs = 0
+        ) : base(debounceTimeMs ?? existing.DebounceTimeMs)
         {
             ProductId = productId ?? existing.ProductId;
             VendorId = vendorId ?? existing.VendorId;

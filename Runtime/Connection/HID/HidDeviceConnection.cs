@@ -106,7 +106,7 @@ namespace MychIO.Connection.HidDevice
                 }
             );
 
-            if (UnityHidApiPlugin.Connect(_pluginHandle, eventReceivedCallback))
+            if (!UnityHidApiPlugin.Connect(_pluginHandle, eventReceivedCallback))
             {
                 _manager.handleEvent(IOEventType.ConnectionError, _device.GetClassification(), _device.GetType().ToString() + " Failed to Connect");
             }
