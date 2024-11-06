@@ -287,7 +287,7 @@ namespace MychIO.Device
         }
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        private void handleInputChange(TouchPanelZone zone, byte input, byte mask)
+        private bool handleInputChange(TouchPanelZone zone, byte input, byte mask)
         {
             _currentActiveStates.TryGetValue(zone, out var currentActiveState);
             if (((input & mask) != 0) != currentActiveState)
@@ -296,7 +296,9 @@ namespace MychIO.Device
                 var newState = currentActiveState ? InputState.Off : InputState.On;
                 callback(zone, newState);
                 _currentActiveStates[zone] = !currentActiveState;
+                return true;
             }
+            return false;
         }
 
         public override void ResetState()

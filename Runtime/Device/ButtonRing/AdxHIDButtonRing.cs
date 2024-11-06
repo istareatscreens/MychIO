@@ -163,7 +163,7 @@ namespace MychIO.Device
         }
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        private void handleInputChange(ButtonRingZone zone, byte input)
+        private bool handleInputChange(ButtonRingZone zone, byte input)
         {
             _currentActiveStates.TryGetValue(zone, out var currentActiveState);
             if ((input == LEAST_SIGNIFICANT_BIT) != currentActiveState)
@@ -172,7 +172,9 @@ namespace MychIO.Device
                 var newState = currentActiveState ? InputState.Off : InputState.On;
                 callback(zone, newState);
                 _currentActiveStates[zone] = !currentActiveState;
+                return true;
             }
+            return false;
         }
 
         // source: https://stackoverflow.com/a/48599119
