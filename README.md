@@ -239,17 +239,27 @@ To add connection properties to a device you instantiate a new ConnectionPropert
 Then call the `GetProperties` method on this properties object to serialize the properties into a type agnostic dictionary.
 
 ```C#
-        var propertiesTouchPanel = new SerialDeviceProperties(
-            AdxTouchPanel.GetDefaultDeviceProperties(),
-            comPortNumber: "COM10"
-        ).GetProperties();
+var propertiesTouchPanel = new SerialDeviceProperties(
+    AdxTouchPanel.GetDefaultDeviceProperties(),
+    comPortNumber: "COM10"
+).GetProperties();
 
-        _ioManager
-            .AddTouchPanel(
-                AdxTouchPanel.GetDeviceName(),
-                propertiesTouchPanel,
-                inputSubscriptions: touchPanelCallbacks
-        );
+_ioManager
+    .AddTouchPanel(
+        AdxTouchPanel.GetDeviceName(),
+        propertiesTouchPanel,
+        inputSubscriptions: touchPanelCallbacks
+);
+
+// Another way to add custom properties
+_ioManager.AddButtonRing(
+    AdxIO4ButtonRing.GetDeviceName(),
+    new Dictionary<string, dynamic>(){
+        { "PollingRateMs", 0 },
+        { "DebounceTimeMs", 5}
+    },
+    inputSubscriptions: buttonRingCallbacks
+);
 ```
 
 ### Retreiving Device Properties
@@ -281,6 +291,17 @@ On IOManager the following method can be used to retrieve the current set IConne
 ```C#
 public IDictionary<string, dynamic>? GetDeviceProperties(DeviceClassification deviceClassification)
 ```
+
+### Polling/Debounce Properties
+
+All devices that give input have debounce and polling settings.
+
+| Delay Type | Connection Class         | Interaction                                                              |
+| ---------- | ------------------------ | ------------------------------------------------------------------------ |
+| `Polling`  | `SerialDeviceConnection` | `Delay happens directly after a read from the device (read is blocking)` |
+| `Debounce` | `SerialDeviceConnection` | `Delay happens for each individual zone interaction`                     |
+| `Polling`  | `HidDeviceConnection`    | `Delay happens after every unique read (read is non-blocking)`           |
+| `Debounce` | `HidDeviceConnection`    | `Delay happens for each individual zone interaction`                     |
 
 ## Writing to Devices
 
