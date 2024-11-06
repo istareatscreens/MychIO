@@ -1,5 +1,3 @@
-using System;
-
 namespace MychIO.Connection.HidDevice
 {
     public class HidDeviceProperties : ConnectionProperties
@@ -28,6 +26,7 @@ namespace MychIO.Connection.HidDevice
             LeftBytesToTruncate = leftBytesToTruncate;
             BytesToRead = bytesToRead;
             PollingRateMs = pollingRateMs;
+            PopulatePropertiesFromFields();
         }
 
         // Copy Constructor used for creating properties objects from default properties

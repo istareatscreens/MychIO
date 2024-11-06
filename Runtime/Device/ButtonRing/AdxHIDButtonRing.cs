@@ -44,7 +44,8 @@ namespace MychIO.Device
             productId: 0x5750,
             bufferSize: BUFFER_SIZE,
             leftBytesToTruncate: LEFT_BYTES_TO_TRUNCATE,
-            bytesToRead: BYTES_TO_READ
+            bytesToRead: BYTES_TO_READ,
+            pollingRateMs: 0
         );
         public new static HidDeviceProperties GetDefaultDeviceProperties() => (HidDeviceProperties)GetDefaultConnectionProperties();
         // ** Connection Properties

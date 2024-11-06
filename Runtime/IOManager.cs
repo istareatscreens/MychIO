@@ -103,12 +103,12 @@ namespace MychIO
         {
             EnsureAllInputStatesAreAccountedFor(inputSubscriptions);
             AddDeviceByName
-           (
-               deviceName,
-               connectionProperties,
-               DeviceClassification.ButtonRing,
-               ConvertDictionary(inputSubscriptions)
-           );
+            (
+                deviceName,
+                connectionProperties,
+                DeviceClassification.ButtonRing,
+                ConvertDictionary(inputSubscriptions)
+            );
         }
 
         public void AddLedDevice(

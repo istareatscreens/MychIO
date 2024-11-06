@@ -2,7 +2,7 @@ namespace MychIO.Connection.SerialDevice
 {
     public class SerialDeviceProperties : ConnectionProperties
     {
-        public const int DEFAULT_WRITE_TIMEOUT_MS = 1000;
+        public const int DEFAULT_WRITE_TIMEOUT_MS = 100;
         // WARNING: Adding {get; set;} will break serialization/unserialization of properties!
         public string ComPortNumber;
         public int PollTimeoutMs;

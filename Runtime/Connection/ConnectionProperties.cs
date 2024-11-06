@@ -12,7 +12,7 @@ namespace MychIO.Connection
     {
 
         public string Id { get; private set; }
-        private Queue<string> _errors = new Queue<string>();
+        private Queue<string> _errors = new();
         private IDictionary<string, dynamic> _properties = new Dictionary<string, dynamic>();
         public IDictionary<string, dynamic> GetProperties() => _properties;
 
@@ -49,7 +49,7 @@ namespace MychIO.Connection
                 {
                     _properties[field.Name] = value;
                 }
-                catch (Exception)
+                catch
                 {
                     _errors.Enqueue($"Failed to populate property: {field.Name} on {GetType().Name},{field.Name},{GetType().Name}");
                 }
@@ -69,7 +69,7 @@ namespace MychIO.Connection
                 {
                     field.SetValue(this, value);
                 }
-                catch (Exception)
+                catch
                 {
                     _errors.Enqueue($"Failed to apply property: {field.Name} on {GetType().Name},{field.Name},{GetType().Name}");
                 }

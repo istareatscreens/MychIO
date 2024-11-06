@@ -4,6 +4,7 @@ using System.Threading;
 using System.Threading.Tasks;
 using MychIO.Device;
 using MychIO.Event;
+using UnityEditor;
 
 namespace MychIO.Connection.SerialDevice
 {
@@ -60,6 +61,11 @@ namespace MychIO.Connection.SerialDevice
             // https://stackoverflow.com/questions/13408476/detecting-when-a-serialport-gets-disconnected
             _serialPort.Open();
 
+            if (!IsConnected())
+            {
+                _manager.handleEvent(IOEventType.ConnectionError, _device.GetClassification(), _device.GetType().ToString() + " Device lost COM port connection");
+            }
+
             Task.Run(async () =>
             {
                 await _device.OnStartWrite();
@@ -83,6 +89,7 @@ namespace MychIO.Connection.SerialDevice
                     _serialPort.Read(buffer, 0, bytesRead);
                     if (bytesRead < _bufferByteLength) { continue; } // Handle case where not enough data to read
                     _device.ReadData(buffer);
+                    await Task.Delay(_pollTimeoutMs, _cancellationTokenSource.Token);
                 }
             }
             catch (TaskCanceledException)

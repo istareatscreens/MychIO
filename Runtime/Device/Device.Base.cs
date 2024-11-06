@@ -34,6 +34,14 @@ namespace MychIO.Device
             var defaultProperties = (IConnectionProperties)GetBaseClassStaticMethod("GetDefaultConnectionProperties", GetType()).Invoke(null, null);
             _classification = (DeviceClassification)GetBaseClassStaticMethod("GetDeviceClassification", GetType()).Invoke(null, null);
 
+            if (0 == defaultProperties.GetProperties().Count)
+            {
+                manager.handleEvent(
+                    Event.IOEventType.InvalidDevicePropertyError,
+                    _classification, "DefaultProperties are empty potential issue with GetDefaultConnectionProperties method"
+                 );
+            }
+
             // construct
             _inputSubscriptions = CreateTypedDictionary(inputSubscriptions);
             _connectionProperties = (null != connectionProperties) ?
