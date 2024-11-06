@@ -81,6 +81,56 @@ namespace MychIO.Device
             _currentState = NO_INPUT_PACKET;
         }
 
+        public unsafe override void ReadDataDebounce(IntPtr pointer)
+        {
+            if (pointer == IntPtr.Zero)
+            {
+                return;
+            }
+
+            byte[] currentInput = new byte[BYTES_TO_READ];
+            byte* pByte = (byte*)pointer;
+            for (int i = 0; i < BYTES_TO_READ; i++)
+            {
+                currentInput[i] = *(pByte + i);
+            }
+
+            if (ByteArraysEqual(_currentState, currentInput))
+            {
+                return;
+            }
+
+            if (_currentState[3] != currentInput[3])
+            {
+                var InvertedByte3 = (byte)~currentInput[3];
+
+                DebouncedHandleInputChange(ButtonRingZone.BA3, () => handleInputChange(ButtonRingZone.BA3, InvertedByte3, LEAST_SIGNIFICANT_BIT));
+                DebouncedHandleInputChange(ButtonRingZone.ArrowUp, () => handleInputChange(ButtonRingZone.ArrowUp, currentInput[3], 0b00000010));
+                DebouncedHandleInputChange(ButtonRingZone.BA1, () => handleInputChange(ButtonRingZone.BA1, InvertedByte3, 0b00000100));
+                DebouncedHandleInputChange(ButtonRingZone.BA2, () => handleInputChange(ButtonRingZone.BA2, InvertedByte3, 0b00001000));
+                DebouncedHandleInputChange(ButtonRingZone.ArrowDown, () => handleInputChange(ButtonRingZone.ArrowDown, currentInput[3], 0b01000000));
+            }
+
+            if (_currentState[4] != currentInput[4])
+            {
+                var InvertedByte4 = (byte)~currentInput[4];
+
+                DebouncedHandleInputChange(ButtonRingZone.BA4, () => handleInputChange(ButtonRingZone.BA4, InvertedByte4, MOST_SIGNIFICANT_BIT));
+                DebouncedHandleInputChange(ButtonRingZone.BA5, () => handleInputChange(ButtonRingZone.BA5, InvertedByte4, 0b01000000));
+                DebouncedHandleInputChange(ButtonRingZone.BA6, () => handleInputChange(ButtonRingZone.BA6, InvertedByte4, 0b00100000));
+                DebouncedHandleInputChange(ButtonRingZone.BA7, () => handleInputChange(ButtonRingZone.BA7, InvertedByte4, 0b00010000));
+                DebouncedHandleInputChange(ButtonRingZone.BA8, () => handleInputChange(ButtonRingZone.BA8, InvertedByte4, 0b00001000));
+                DebouncedHandleInputChange(ButtonRingZone.Select, () => handleInputChange(ButtonRingZone.Select, currentInput[4], 0b00000010));
+            }
+
+            if (_currentState[0] != currentInput[0])
+            {
+                DebouncedHandleInputChange(ButtonRingZone.InsertCoin, () => handleInputChange(ButtonRingZone.InsertCoin, currentInput[0], LEAST_SIGNIFICANT_BIT));
+            }
+
+            _currentState = currentInput;
+        }
+
         public unsafe override void ReadData(IntPtr pointer)
         {
 
@@ -124,7 +174,6 @@ namespace MychIO.Device
             if (_currentState[3] != currentInput[3])
             {
                 var InvertedByte3 = (byte)~currentInput[3];
-
                 handleInputChange(ButtonRingZone.BA3, InvertedByte3, LEAST_SIGNIFICANT_BIT);
 
                 handleInputChange(ButtonRingZone.ArrowUp, currentInput[3], 0b00000010);
@@ -189,7 +238,6 @@ namespace MychIO.Device
             }
         }
 
-
         // source: https://stackoverflow.com/a/48599119
         private static bool ByteArraysEqual(ReadOnlySpan<byte> a1, ReadOnlySpan<byte> a2)
         {
@@ -206,6 +254,8 @@ namespace MychIO.Device
             return Task.CompletedTask;
         }
         public override void ReadData(byte[] data) { }
+
+        public override void ReadDataDebounce(byte[] data) { }
 
         public override Task OnDisconnectWrite()
         {

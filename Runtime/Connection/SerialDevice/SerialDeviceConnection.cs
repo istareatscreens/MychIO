@@ -69,7 +69,7 @@ namespace MychIO.Connection.SerialDevice
             Task.Run(async () =>
             {
                 await _device.OnStartWrite();
-                await ReceiveData();
+                await ReceiveData(GetRecieveDataFunction());
             });
 
             _manager.handleEvent(IOEventType.Attach, _device.GetClassification(), _device.GetType().ToString() + " Device connected");
@@ -77,7 +77,14 @@ namespace MychIO.Connection.SerialDevice
             return Task.CompletedTask;
         }
 
-        private async Task ReceiveData()
+        private Action<byte[]> GetRecieveDataFunction()
+        {
+            return _connectionProperties.GetDebounceTime() > TimeSpan.FromMilliseconds(0) ?
+                         new Action<byte[]>((data) => _device.ReadDataDebounce(data)) :
+                         new Action<byte[]>((data) => _device.ReadData(data));
+        }
+
+        private async Task ReceiveData(Action<byte[]> ReadData)
         {
             try
             {
@@ -88,7 +95,7 @@ namespace MychIO.Connection.SerialDevice
                     byte[] buffer = new byte[bytesRead];
                     _serialPort.Read(buffer, 0, bytesRead);
                     if (bytesRead < _bufferByteLength) { continue; } // Handle case where not enough data to read
-                    _device.ReadData(buffer);
+                    ReadData(buffer);
                     await Task.Delay(_pollTimeoutMs, _cancellationTokenSource.Token);
                 }
             }
@@ -156,7 +163,7 @@ namespace MychIO.Connection.SerialDevice
                 Task.Run(async () =>
                 {
                     await _device.OnStartWrite();
-                    await ReceiveData();
+                    await ReceiveData(GetRecieveDataFunction());
                 });
             }
         }

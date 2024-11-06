@@ -81,7 +81,7 @@ namespace MychIO.Connection.HidDevice
             // if in the future multiplayer on the same machine is supported 
             // device path should be used instead requiring a rework of how the plugin is implemented 
             // e.g. add support for device path as a connectionProperty then overload the plugin constructor 
-            return !(connectionProperties is HidDeviceProperties) ||
+            return connectionProperties is not HidDeviceProperties ||
             (
              ((HidDeviceProperties)connectionProperties).VendorId !=
               ((HidDeviceProperties)_connectionProperties).VendorId &&
@@ -111,7 +111,7 @@ namespace MychIO.Connection.HidDevice
                 _manager.handleEvent(IOEventType.ConnectionError, _device.GetClassification(), _device.GetType().ToString() + " Failed to Connect");
             }
 
-            var dataReceivedCallback = new UnityHidApiPlugin.DataCallbackDelegate(_device.ReadData);
+            var dataReceivedCallback = GetRecieveDataFunction();
 
             // prevent garbage collection of callbacks
             _dataCallbackHandle = GCHandle.Alloc(dataReceivedCallback);
@@ -122,6 +122,13 @@ namespace MychIO.Connection.HidDevice
 
             return Task.CompletedTask;
 
+        }
+
+        private UnityHidApiPlugin.DataCallbackDelegate GetRecieveDataFunction()
+        {
+            return _connectionProperties.GetDebounceTime() > TimeSpan.FromMilliseconds(0) ?
+                         new UnityHidApiPlugin.DataCallbackDelegate(_device.ReadDataDebounce) :
+                         new UnityHidApiPlugin.DataCallbackDelegate(_device.ReadData);
         }
 
         public override async Task Disconnect()

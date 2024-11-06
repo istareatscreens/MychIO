@@ -92,8 +92,8 @@ namespace MychIO.Device
             await Write(LedCommand.ClearAll);
         }
 
-        public override void ReadData(byte[] data)
-        { }
+        public override void ReadData(byte[] data) { }
+        public override void ReadDataDebounce(byte[] data) { }
 
         public override void ResetState()
         {
@@ -132,6 +132,7 @@ namespace MychIO.Device
         {
             throw new NotImplementedException();
         }
+        public override void ReadDataDebounce(IntPtr intPtr) { }
 
     }
 

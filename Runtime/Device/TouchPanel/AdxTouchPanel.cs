@@ -124,6 +124,86 @@ namespace MychIO.Device
 
             await Write(TouchPanelCommand.Start);
         }
+        public override void ReadDataDebounce(byte[] data)
+        {
+            if (data[0] != '(')
+            {
+                return;
+            }
+
+            byte[] currentInput = new byte[BYTES_TO_READ];
+
+            Buffer.BlockCopy(data, data.Length - 9, currentInput, 0, 9);
+
+            if (ByteArraysEqual(_currentState, currentInput))
+            {
+                return;
+            }
+
+            if (currentInput[1] != _currentState[1])
+            {
+                DebouncedHandleInputChange(TouchPanelZone.A1, () => handleInputChange(TouchPanelZone.A1, currentInput[1], 0b00000001));
+                DebouncedHandleInputChange(TouchPanelZone.A2, () => handleInputChange(TouchPanelZone.A2, currentInput[1], 0b00000010));
+                DebouncedHandleInputChange(TouchPanelZone.A3, () => handleInputChange(TouchPanelZone.A3, currentInput[1], 0b00000100));
+                DebouncedHandleInputChange(TouchPanelZone.A4, () => handleInputChange(TouchPanelZone.A4, currentInput[1], 0b00001000));
+                DebouncedHandleInputChange(TouchPanelZone.A5, () => handleInputChange(TouchPanelZone.A5, currentInput[1], 0b00010000));
+            }
+
+            if (currentInput[2] != _currentState[2])
+            {
+                DebouncedHandleInputChange(TouchPanelZone.A6, () => handleInputChange(TouchPanelZone.A6, currentInput[2], 0b00000001));
+                DebouncedHandleInputChange(TouchPanelZone.A7, () => handleInputChange(TouchPanelZone.A7, currentInput[2], 0b00000010));
+                DebouncedHandleInputChange(TouchPanelZone.A8, () => handleInputChange(TouchPanelZone.A8, currentInput[2], 0b00000100));
+                DebouncedHandleInputChange(TouchPanelZone.B1, () => handleInputChange(TouchPanelZone.B1, currentInput[2], 0b00001000));
+                DebouncedHandleInputChange(TouchPanelZone.B2, () => handleInputChange(TouchPanelZone.B2, currentInput[2], 0b00010000));
+            }
+
+            if (currentInput[3] != _currentState[3])
+            {
+                DebouncedHandleInputChange(TouchPanelZone.B3, () => handleInputChange(TouchPanelZone.B3, currentInput[3], 0b00000001));
+                DebouncedHandleInputChange(TouchPanelZone.B4, () => handleInputChange(TouchPanelZone.B4, currentInput[3], 0b00000010));
+                DebouncedHandleInputChange(TouchPanelZone.B5, () => handleInputChange(TouchPanelZone.B5, currentInput[3], 0b00000100));
+                DebouncedHandleInputChange(TouchPanelZone.B6, () => handleInputChange(TouchPanelZone.B6, currentInput[3], 0b00001000));
+                DebouncedHandleInputChange(TouchPanelZone.B7, () => handleInputChange(TouchPanelZone.B7, currentInput[3], 0b00010000));
+            }
+
+            if (currentInput[4] != _currentState[4])
+            {
+                DebouncedHandleInputChange(TouchPanelZone.B8, () => handleInputChange(TouchPanelZone.B8, currentInput[4], 0b00000001));
+                DebouncedHandleInputChange(TouchPanelZone.C1, () => handleInputChange(TouchPanelZone.C1, currentInput[4], 0b00000010));
+                DebouncedHandleInputChange(TouchPanelZone.C2, () => handleInputChange(TouchPanelZone.C2, currentInput[4], 0b00000100));
+                DebouncedHandleInputChange(TouchPanelZone.D1, () => handleInputChange(TouchPanelZone.D1, currentInput[4], 0b00001000));
+                DebouncedHandleInputChange(TouchPanelZone.D2, () => handleInputChange(TouchPanelZone.D2, currentInput[4], 0b00010000));
+            }
+
+            if (currentInput[5] != _currentState[5])
+            {
+                DebouncedHandleInputChange(TouchPanelZone.D3, () => handleInputChange(TouchPanelZone.D3, currentInput[5], 0b00000001));
+                DebouncedHandleInputChange(TouchPanelZone.D4, () => handleInputChange(TouchPanelZone.D4, currentInput[5], 0b00000010));
+                DebouncedHandleInputChange(TouchPanelZone.D5, () => handleInputChange(TouchPanelZone.D5, currentInput[5], 0b00000100));
+                DebouncedHandleInputChange(TouchPanelZone.D6, () => handleInputChange(TouchPanelZone.D6, currentInput[5], 0b00001000));
+                DebouncedHandleInputChange(TouchPanelZone.D7, () => handleInputChange(TouchPanelZone.D7, currentInput[5], 0b00010000));
+            }
+
+            if (currentInput[6] != _currentState[6])
+            {
+                DebouncedHandleInputChange(TouchPanelZone.D8, () => handleInputChange(TouchPanelZone.D8, currentInput[6], 0b00000001));
+                DebouncedHandleInputChange(TouchPanelZone.E1, () => handleInputChange(TouchPanelZone.E1, currentInput[6], 0b00000010));
+                DebouncedHandleInputChange(TouchPanelZone.E2, () => handleInputChange(TouchPanelZone.E2, currentInput[6], 0b00000100));
+                DebouncedHandleInputChange(TouchPanelZone.E3, () => handleInputChange(TouchPanelZone.E3, currentInput[6], 0b00001000));
+                DebouncedHandleInputChange(TouchPanelZone.E4, () => handleInputChange(TouchPanelZone.E4, currentInput[6], 0b00010000));
+            }
+
+            if (currentInput[7] != _currentState[7])
+            {
+                DebouncedHandleInputChange(TouchPanelZone.E5, () => handleInputChange(TouchPanelZone.E5, currentInput[7], 0b00000001));
+                DebouncedHandleInputChange(TouchPanelZone.E6, () => handleInputChange(TouchPanelZone.E6, currentInput[7], 0b00000010));
+                DebouncedHandleInputChange(TouchPanelZone.E7, () => handleInputChange(TouchPanelZone.E7, currentInput[7], 0b00000100));
+                DebouncedHandleInputChange(TouchPanelZone.E8, () => handleInputChange(TouchPanelZone.E8, currentInput[7], 0b00001000));
+            }
+
+            _currentState = currentInput;
+        }
 
         public override void ReadData(byte[] data)
         {
@@ -158,8 +238,6 @@ namespace MychIO.Device
                 handleInputChange(TouchPanelZone.A8, currentInput[2], 0b00000100);
                 handleInputChange(TouchPanelZone.B1, currentInput[2], 0b00001000);
                 handleInputChange(TouchPanelZone.B2, currentInput[2], 0b00010000);
-
-
             }
 
             if (currentInput[3] != _currentState[3])
@@ -169,7 +247,6 @@ namespace MychIO.Device
                 handleInputChange(TouchPanelZone.B5, currentInput[3], 0b00000100);
                 handleInputChange(TouchPanelZone.B6, currentInput[3], 0b00001000);
                 handleInputChange(TouchPanelZone.B7, currentInput[3], 0b00010000);
-
             }
 
             if (currentInput[4] != _currentState[4])
@@ -179,7 +256,6 @@ namespace MychIO.Device
                 handleInputChange(TouchPanelZone.C2, currentInput[4], 0b00000100);
                 handleInputChange(TouchPanelZone.D1, currentInput[4], 0b00001000);
                 handleInputChange(TouchPanelZone.D2, currentInput[4], 0b00010000);
-
             }
 
             if (currentInput[5] != _currentState[5])
@@ -189,7 +265,6 @@ namespace MychIO.Device
                 handleInputChange(TouchPanelZone.D5, currentInput[5], 0b00000100);
                 handleInputChange(TouchPanelZone.D6, currentInput[5], 0b00001000);
                 handleInputChange(TouchPanelZone.D7, currentInput[5], 0b00010000);
-
             }
             if (currentInput[6] != _currentState[6])
             {
@@ -261,7 +336,7 @@ namespace MychIO.Device
         {
             throw new NotImplementedException();
         }
-
+        public override void ReadDataDebounce(IntPtr intPtr) { }
         public override Task OnDisconnectWrite()
         {
             return Task.CompletedTask;

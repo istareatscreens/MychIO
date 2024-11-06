@@ -162,9 +162,11 @@ namespace MychIO.Device
         // just implement them in all devices objects
         public abstract void ReadData(byte[] data);
         public abstract void ReadData(IntPtr data);
+        public abstract void ReadDataDebounce(byte[] data);
+        public abstract void ReadDataDebounce(IntPtr intPtr);
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public void DebouncedHandleInputChange(T1 zone, Action callback)
+        protected void DebouncedHandleInputChange(T1 zone, Action callback)
         {
             DateTime now = DateTime.UtcNow;
 

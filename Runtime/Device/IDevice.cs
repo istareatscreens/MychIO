@@ -11,6 +11,8 @@ namespace MychIO.Device
         void ResetState();
         void ReadData(byte[] data);
         void ReadData(IntPtr intPtr);
+        void ReadDataDebounce(byte[] data);
+        void ReadDataDebounce(IntPtr intPtr);
         Task OnStartWrite();
         Task OnDisconnectWrite();
         Task<IDevice> Connect();
