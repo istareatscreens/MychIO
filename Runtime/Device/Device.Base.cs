@@ -166,19 +166,31 @@ namespace MychIO.Device
         public abstract void ReadDataDebounce(IntPtr intPtr);
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        protected void DebouncedHandleInputChange(T1 zone, Action callback)
+        protected void DebouncedHandleInputChange(T1 zone, Func<bool> callback)
         {
             DateTime now = DateTime.UtcNow;
 
             _lastInputTriggerTimes.TryGetValue(zone, out var lastTriggerTime);
-
-            if ((now - lastTriggerTime) < _debounceTime)
+            var diff = now - lastTriggerTime;
+            if (diff < _debounceTime)
             {
+#if DEBUG
+                _manager.handleEvent(Event.IOEventType.Debug, 
+                                     _classification, 
+                                     $"[Debounce] Received device response\nInterval: {diff.Milliseconds}ms");
+#endif
                 return;
             }
-
-            _lastInputTriggerTimes[zone] = now;
-            callback();
+            var isInputChanged = callback();
+            if (isInputChanged)
+            {
+                _lastInputTriggerTimes[zone] = now;
+#if DEBUG
+                _manager.handleEvent(Event.IOEventType.Debug,
+                                     _classification,
+                                     $"[Update] Received device response");
+#endif
+            }
         }
 
         public abstract Task Write(params Enum[] interactions);
