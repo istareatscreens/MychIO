@@ -1,12 +1,10 @@
 using System;
 using System.Collections.Generic;
-using System.Diagnostics;
-using System.Linq;
 using System.Runtime.CompilerServices;
-using System.Runtime.InteropServices.ComTypes;
 using System.Threading.Tasks;
 using MychIO.Connection;
 using MychIO.Connection.TouchPanel;
+using MychIODev.Packages.dev.isas.MychIO.Runtime.Connection.TouchPanel;
 
 namespace MychIO.Device.TouchPanel
 {
@@ -61,15 +59,15 @@ namespace MychIO.Device.TouchPanel
             {
                 return;
             }
-            byte[] currentInput = new byte[MAX_TOUCH_POINTS * DATA_POINTS * SHORT_SIZE];
+            byte[] rawInput = new byte[MAX_TOUCH_POINTS * DATA_POINTS * SHORT_SIZE];
             byte* pByte = (byte*)pointer;
             for (int i = 0; i < MAX_TOUCH_POINTS * DATA_POINTS; i++)
             {
-                currentInput[i] = *(pByte + i);
+                rawInput[i] = *(pByte + i);
             }
 
-            short[] shortArray = new short[MAX_TOUCH_POINTS * DATA_POINTS];
-            Buffer.BlockCopy(currentInput, 0, shortArray, 0, currentInput.Length);
+            short[] currentInput = new short[MAX_TOUCH_POINTS * DATA_POINTS];
+            Buffer.BlockCopy(rawInput, 0, currentInput, 0, currentInput.Length);
 
             // TODO: Implement
 
@@ -93,6 +91,7 @@ namespace MychIO.Device.TouchPanel
             Buffer.BlockCopy(rawInput, 0, currentInput, 0, currentInput.Length);
 
             // TODO: Implement
+            // UnityEngine.Debug.Log(GetTouchEventsString(currentInput));
 
         }
 
@@ -102,6 +101,37 @@ namespace MychIO.Device.TouchPanel
             _currentActiveStates.TryGetValue(zone, out var currentActiveState);
             // TODO: Implement
         }
+
+#if UNITY_EDITOR
+        public static string GetTouchEventsString(short[] touchArray)
+        {
+            // StringBuilder to accumulate the output string
+            var result = new System.Text.StringBuilder();
+
+            if (touchArray.Length % 3 != 0)
+            {
+                result.AppendLine("Invalid array length. The array must be divisible by 3.");
+                return result.ToString();
+            }
+
+            for (int i = 0; i < touchArray.Length; i += 3)
+            {
+                short x = touchArray[i];
+                short y = touchArray[i + 1];
+                short eventValue = touchArray[i + 2];
+
+                // Get the name of the event, or "undefined" if it's not recognized
+                string eventName = Enum.IsDefined(typeof(WindowsTouchEvent), eventValue)
+                                   ? Enum.GetName(typeof(WindowsTouchEvent), eventValue)
+                                   : "undefined";
+
+                // Append the formatted output
+                result.AppendLine($"({x}, {y}), {eventName}");
+            }
+
+            return result.ToString();
+        }
+#endif
 
         // Not used
         public override Task Write(params Enum[] interactions)
