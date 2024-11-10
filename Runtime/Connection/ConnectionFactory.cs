@@ -13,7 +13,8 @@ namespace MychIO.Connection
         private static Dictionary<ConnectionType, Type> _connectionTypeToConnection = new()
         {
             { ConnectionType.HID, typeof(HidDeviceConnection) },
-            { ConnectionType.SerialDevice, typeof(SerialDeviceConnection) }
+            { ConnectionType.SerialDevice, typeof(SerialDeviceConnection) },
+            { ConnectionType.TouchPanelDevice, typeof(SerialDeviceConnection) }
             // Add other connections here...
         };
         internal static IConnection GetConnection(IDevice device, IConnectionProperties connectionProperties, IOManager manager)

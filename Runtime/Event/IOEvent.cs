@@ -11,7 +11,8 @@ namespace MychIO.Event
         HidDeviceReadError,
         Debug,
         ReconnectionError,
-        InvalidDevicePropertyError
+        InvalidDevicePropertyError,
+        TouchPanelDeviceReadError
     }
     public delegate void ControllerEventDelegate(
         IOEventType eventType,
