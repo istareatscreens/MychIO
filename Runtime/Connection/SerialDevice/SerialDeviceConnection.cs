@@ -64,6 +64,7 @@ namespace MychIO.Connection.SerialDevice
             if (!IsConnected())
             {
                 _manager.handleEvent(IOEventType.ConnectionError, _device.GetClassification(), _device.GetType().ToString() + " Device lost COM port connection");
+                return Task.CompletedTask;
             }
 
             Task.Run(async () =>

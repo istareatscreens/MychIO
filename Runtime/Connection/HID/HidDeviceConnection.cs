@@ -47,9 +47,12 @@ namespace MychIO.Connection.HidDevice
                 manager.handleEvent(
                     IOEventType.ConnectionError,
                     _device.GetClassification(),
-                    "Error Initializing HID Connection plugin, please try again"
+                    "Error Initializing HID Connection plugin, please recreate this device"
                 );
+
+                // This will destroy the initialized settings, HidDeviceConnection failed to initialize
                 UnityHidApiPlugin.ReloadPlugin();
+                throw new Exception();
             }
         }
 

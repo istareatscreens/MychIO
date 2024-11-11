@@ -43,9 +43,11 @@ namespace MychIO.Connection.TouchPanelDevice
                 manager.handleEvent(
                     IOEventType.ConnectionError,
                     _device.GetClassification(),
-                    "Error Initializing Touch Panel Connection plugin, please try again"
+                    "Error Initializing Touch Panel Connection plugin, please recreate this device"
                 );
+                // This will destroy the initialized settings, TouchPanelDeviceConnection failed to initialize
                 UnityTouchPanelApiPlugin.ReloadPlugin();
+                throw new Exception();
             }
         }
 
