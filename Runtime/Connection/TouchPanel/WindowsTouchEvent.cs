@@ -1,4 +1,4 @@
-namespace MychIODev.Packages.dev.isas.MychIO.Runtime.Connection.TouchPanel
+namespace MychIO.Connection.TouchPanelDevice
 {
     // Modeled off of dwFlags https://learn.microsoft.com/en-us/windows/win32/api/winuser/ns-winuser-touchinput
     public enum WindowsTouchEvent

@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.Linq;
 using MychIO.Connection.HidDevice;
 using MychIO.Connection.SerialDevice;
+using MychIO.Connection.TouchPanelDevice;
 using MychIO.Device;
 
 namespace MychIO.Connection
@@ -14,7 +15,7 @@ namespace MychIO.Connection
         {
             { ConnectionType.HID, typeof(HidDeviceConnection) },
             { ConnectionType.SerialDevice, typeof(SerialDeviceConnection) },
-            { ConnectionType.TouchPanelDevice, typeof(SerialDeviceConnection) }
+            { ConnectionType.TouchPanelDevice, typeof(TouchPanelDeviceConnection) }
             // Add other connections here...
         };
         internal static IConnection GetConnection(IDevice device, IConnectionProperties connectionProperties, IOManager manager)

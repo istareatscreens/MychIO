@@ -1,4 +1,4 @@
-namespace MychIO.Connection.TouchPanel
+namespace MychIO.Connection.TouchPanelDevice
 {
     public class TouchPanelDeviceProperties : ConnectionProperties
     {
@@ -26,6 +26,6 @@ namespace MychIO.Connection.TouchPanel
             PopulatePropertiesFromFields();
         }
 
-        public override ConnectionType GetConnectionType() => ConnectionType.SerialDevice;
+        public override ConnectionType GetConnectionType() => ConnectionType.TouchPanelDevice;
     }
 }

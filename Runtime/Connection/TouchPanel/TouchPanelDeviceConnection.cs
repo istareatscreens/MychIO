@@ -1,11 +1,10 @@
 using System;
 using System.Runtime.InteropServices;
 using System.Threading.Tasks;
-using MychIO.Connection.TouchPanelDevice;
 using MychIO.Device;
 using MychIO.Event;
 
-namespace MychIO.Connection.TouchPanel
+namespace MychIO.Connection.TouchPanelDevice
 {
     public class TouchPanelDeviceConnection : Connection
     {

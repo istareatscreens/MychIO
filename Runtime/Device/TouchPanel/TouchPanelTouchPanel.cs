@@ -3,8 +3,7 @@ using System.Collections.Generic;
 using System.Runtime.CompilerServices;
 using System.Threading.Tasks;
 using MychIO.Connection;
-using MychIO.Connection.TouchPanel;
-using MychIODev.Packages.dev.isas.MychIO.Runtime.Connection.TouchPanel;
+using MychIO.Connection.TouchPanelDevice;
 
 namespace MychIO.Device.TouchPanel
 {
@@ -32,7 +31,7 @@ namespace MychIO.Device.TouchPanel
         private static readonly short[] NO_INPUT_PACKET = new short[MAX_TOUCH_POINTS * DATA_POINTS];
         private short[] _currentState = NO_INPUT_PACKET;
         private IDictionary<TouchPanelZone, bool> _currentActiveStates;
-        public static readonly IDictionary<ButtonRingCommand, byte[]> Commands = new Dictionary<ButtonRingCommand, byte[]> { };
+        public static readonly IDictionary<TouchPanelCommand, byte[]> Commands = new Dictionary<TouchPanelCommand, byte[]> { };
 
         public TouchPanelTouchPanel(
             IDictionary<Enum, Action<Enum, Enum>> inputSubscriptions,
