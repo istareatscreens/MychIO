@@ -84,12 +84,9 @@ namespace MychIO.Connection.TouchPanelDevice
         public override Task Connect()
         {
 
-            if (IsConnected())
-            {
-                // TODO: Set event here
-                return Task.CompletedTask;
-            }
-
+            // IsConnected() will always return true here since successful initilization
+            // counts as connection so do not check
+            
             var eventReceivedCallback = new UnityTouchPanelApiPlugin.EventCallbackDelegate(
                 (string message) =>
                 {
