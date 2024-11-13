@@ -131,7 +131,7 @@ namespace MychIO.Device
                 return;
             }
 
-            byte[] currentInput = new byte[BYTES_TO_READ];
+            Span<byte> currentInput = stackalloc byte[BYTES_TO_READ];
             byte* pByte = (byte*)pointer;
             for (int i = 0; i < BYTES_TO_READ; i++)
             {
@@ -158,7 +158,8 @@ namespace MychIO.Device
             handleInputChange(ButtonRingZone.Select, currentInput[9]);
             handleInputChange(ButtonRingZone.InsertCoin, currentInput[11]);
 
-            _currentState = currentInput;
+            currentInput.CopyTo(_currentState);
+            //_currentState = currentInput;
 
         }
 
