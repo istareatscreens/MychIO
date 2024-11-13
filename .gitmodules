@@ -2,3 +2,8 @@
 [submodule ".PluginSource/UnityHidApiPlugin"]
 	path = .PluginSource/UnityHidApiPlugin
 	url = https://github.com/istareatscreens/UnityHidApiPlugin
+	branch = master
+[submodule ".PluginSource/UnityTouchApiPlugin"]
+	path = .PluginSource/UnityTouchApiPlugin
+	url = https://github.com/istareatscreens/UnityTouchApiPlugin.git
+	branch = master

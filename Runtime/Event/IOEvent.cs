@@ -9,9 +9,10 @@ namespace MychIO.Event
         ConnectionError,
         SerialDeviceReadError,
         HidDeviceReadError,
+        TouchPanelDeviceReadError,
         Debug,
         ReconnectionError,
-        InvalidDevicePropertyError
+        InvalidDevicePropertyError,
     }
     public delegate void ControllerEventDelegate(
         IOEventType eventType,

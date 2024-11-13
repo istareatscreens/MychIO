@@ -2,6 +2,7 @@ using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Threading.Tasks;
+using MychIO.Device.TouchPanel;
 using MychIO.Event;
 
 namespace MychIO.Device
@@ -13,6 +14,7 @@ namespace MychIO.Device
         private static Dictionary<string, Type> _deviceNameToType = new()
         {
             { AdxTouchPanel.GetDeviceName(), typeof(AdxTouchPanel) },
+            { TouchPanelTouchPanel.GetDeviceName(), typeof(TouchPanelTouchPanel) },
             { AdxIO4ButtonRing.GetDeviceName(), typeof(AdxIO4ButtonRing) },
             { AdxHIDButtonRing.GetDeviceName(), typeof(AdxHIDButtonRing) },
             { AdxLedDevice.GetDeviceName(), typeof(AdxLedDevice) },

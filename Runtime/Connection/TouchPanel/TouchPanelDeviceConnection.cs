@@ -4,9 +4,9 @@ using System.Threading.Tasks;
 using MychIO.Device;
 using MychIO.Event;
 
-namespace MychIO.Connection.HidDevice
+namespace MychIO.Connection.TouchPanelDevice
 {
-    public class HidDeviceConnection : Connection
+    public class TouchPanelDeviceConnection : Connection
     {
 
         // Hold callbacks to prevent garbage collection
@@ -16,42 +16,37 @@ namespace MychIO.Connection.HidDevice
         // Holds C++ plugin object reference
         private IntPtr _pluginHandle;
 
-        public HidDeviceConnection(IDevice device, IConnectionProperties connectionProperties, IOManager manager) :
+        public TouchPanelDeviceConnection(IDevice device, IConnectionProperties connectionProperties, IOManager manager) :
          base(device, connectionProperties, manager)
         {
 
-            ValidateConnectionProperties<HidDeviceProperties>();
+            ValidateConnectionProperties<TouchPanelDeviceProperties>();
 
-            if (1 != UnityHidApiPlugin.PluginLoaded())
+            if (1 != UnityTouchPanelApiPlugin.PluginLoaded())
             {
                 manager.handleEvent(
                     IOEventType.ConnectionError,
                         _device.GetClassification(),
-                        "Error loading UnityHidApiPlugin plugin"
+                        "Error loading UnityTouchPanelApiPlugin plugin"
                 );
             }
 
-            // UnityHidApiPlugin.DisposeByClassification((int)device.GetClassification());
-            HidDeviceProperties properties = (HidDeviceProperties)connectionProperties;
-            _pluginHandle = UnityHidApiPlugin.Initialize(
+            // UnityTouchPanelApiPlugin.DisposeByClassification((int)device.GetClassification());
+            TouchPanelDeviceProperties properties = (TouchPanelDeviceProperties)connectionProperties;
+            _pluginHandle = UnityTouchPanelApiPlugin.Initialize(
                 (int)device.GetClassification(),
-                properties.VendorId,
-                properties.ProductId,
-                properties.BufferSize,
-                properties.LeftBytesToTruncate,
-                properties.BytesToRead,
-                properties.PollingRateMs
+                properties.PollingRateMs,
+                (string message) => { manager.handleEvent(IOEventType.ConnectionError, device.GetClassification(), message); }
             );
             if (_pluginHandle == IntPtr.Zero)
             {
                 manager.handleEvent(
                     IOEventType.ConnectionError,
                     _device.GetClassification(),
-                    "Error Initializing HID Connection plugin, please recreate this device"
+                    "Error Initializing Touch Panel Connection plugin, please recreate this device"
                 );
-
-                // This will destroy the initialized settings, HidDeviceConnection failed to initialize
-                UnityHidApiPlugin.ReloadPlugin();
+                // This will destroy the initialized settings, TouchPanelDeviceConnection failed to initialize
+                UnityTouchPanelApiPlugin.ReloadPlugin();
                 throw new Exception();
             }
         }
@@ -69,7 +64,7 @@ namespace MychIO.Connection.HidDevice
             }
             if (_pluginHandle != IntPtr.Zero)
             {
-                UnityHidApiPlugin.Dispose(_pluginHandle);
+                UnityTouchPanelApiPlugin.Dispose(_pluginHandle);
             }
             try
             {
@@ -80,36 +75,26 @@ namespace MychIO.Connection.HidDevice
 
         public override bool CanConnect(IConnection connectionProperties)
         {
-            // It is possible to have multiple devices with the same vendorId and ProductId
-            // if in the future multiplayer on the same machine is supported 
-            // device path should be used instead requiring a rework of how the plugin is implemented 
-            // e.g. add support for device path as a connectionProperty then overload the plugin constructor 
-            return connectionProperties is not HidDeviceProperties ||
-            (
-             ((HidDeviceProperties)connectionProperties).VendorId !=
-              ((HidDeviceProperties)_connectionProperties).VendorId &&
-             ((HidDeviceProperties)connectionProperties).ProductId !=
-              ((HidDeviceProperties)_connectionProperties).ProductId
-            );
+            // Can only have on touch device connected at a time,
+            // if you wanted to have multiple connection events in a single program
+            // you would likely need to use different window handles
+            return connectionProperties is not TouchPanelDeviceProperties;
         }
 
         public override Task Connect()
         {
 
-            if (IsConnected())
-            {
-                // TODO: Set event here
-                return Task.CompletedTask;
-            }
-
-            var eventReceivedCallback = new UnityHidApiPlugin.EventCallbackDelegate(
+            // IsConnected() will always return true here since successful initilization
+            // counts as connection so do not check
+            
+            var eventReceivedCallback = new UnityTouchPanelApiPlugin.EventCallbackDelegate(
                 (string message) =>
                 {
-                    _manager.handleEvent(IOEventType.HidDeviceReadError, _device.GetClassification(), _device.GetType().ToString() + " Error: " + message);
+                    _manager.handleEvent(IOEventType.TouchPanelDeviceReadError, _device.GetClassification(), _device.GetType().ToString() + " Error: " + message);
                 }
             );
 
-            if (!UnityHidApiPlugin.Connect(_pluginHandle, eventReceivedCallback))
+            if (!UnityTouchPanelApiPlugin.Connect(_pluginHandle, eventReceivedCallback))
             {
                 _manager.handleEvent(IOEventType.ConnectionError, _device.GetClassification(), _device.GetType().ToString() + " Failed to Connect");
             }
@@ -127,11 +112,11 @@ namespace MychIO.Connection.HidDevice
 
         }
 
-        private UnityHidApiPlugin.DataCallbackDelegate GetRecieveDataFunction()
+        private UnityTouchPanelApiPlugin.DataCallbackDelegate GetRecieveDataFunction()
         {
             return _connectionProperties.GetDebounceTime() > TimeSpan.FromMilliseconds(0) ?
-                         new UnityHidApiPlugin.DataCallbackDelegate(_device.ReadDataDebounce) :
-                         new UnityHidApiPlugin.DataCallbackDelegate(_device.ReadData);
+                         new UnityTouchPanelApiPlugin.DataCallbackDelegate(_device.ReadDataDebounce) :
+                         new UnityTouchPanelApiPlugin.DataCallbackDelegate(_device.ReadData);
         }
 
         public override async Task Disconnect()
@@ -140,13 +125,13 @@ namespace MychIO.Connection.HidDevice
             {
                 await _device.OnDisconnectWrite();
             }
-            UnityHidApiPlugin.Disconnect(_pluginHandle);
+            UnityTouchPanelApiPlugin.Disconnect(_pluginHandle);
         }
 
         // Is Connected means its reading currently
         public override bool IsConnected()
         {
-            return UnityHidApiPlugin.IsConnected(_pluginHandle);
+            return UnityTouchPanelApiPlugin.IsConnected(_pluginHandle);
         }
 
         // currently no need to write to HID devices so not implemented
@@ -157,19 +142,19 @@ namespace MychIO.Connection.HidDevice
 
         public override bool IsReading()
         {
-            return UnityHidApiPlugin.IsReading(_pluginHandle);
+            return UnityTouchPanelApiPlugin.IsReading(_pluginHandle);
         }
 
         public override void Read()
         {
             if (!IsReading() && _pluginHandle != null && _pluginHandle != IntPtr.Zero)
             {
-                var dataCallback = (UnityHidApiPlugin.DataCallbackDelegate)_dataCallbackHandle.Target;
-                var eventCallback = (UnityHidApiPlugin.EventCallbackDelegate)_eventCallbackHandle.Target;
-                UnityHidApiPlugin.Read(_pluginHandle, dataCallback, eventCallback);
+                var dataCallback = (UnityTouchPanelApiPlugin.DataCallbackDelegate)_dataCallbackHandle.Target;
+                var eventCallback = (UnityTouchPanelApiPlugin.EventCallbackDelegate)_eventCallbackHandle.Target;
+                UnityTouchPanelApiPlugin.Read(_pluginHandle, dataCallback, eventCallback);
             }
 
-            if (!UnityHidApiPlugin.IsReading(_pluginHandle))
+            if (!UnityTouchPanelApiPlugin.IsReading(_pluginHandle))
             {
                 _manager.handleEvent(IOEventType.ConnectionError, _device.GetClassification(), _device.GetType().ToString() + " Error: failed to start reading from device");
             }
@@ -179,7 +164,7 @@ namespace MychIO.Connection.HidDevice
         {
             if (IsReading())
             {
-                UnityHidApiPlugin.StopReading(_pluginHandle);
+                UnityTouchPanelApiPlugin.StopReading(_pluginHandle);
             }
         }
     }
