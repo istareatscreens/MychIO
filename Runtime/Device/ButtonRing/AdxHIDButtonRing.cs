@@ -5,7 +5,6 @@ using System.Runtime.CompilerServices;
 using System.Threading.Tasks;
 using MychIO.Connection;
 using MychIO.Connection.HidDevice;
-using UnityEngine.UIElements;
 
 namespace MychIO.Device
 {
@@ -98,18 +97,31 @@ namespace MychIO.Device
                 return;
             }
 
-            DebouncedHandleInputChange(ButtonRingZone.BA3, (input) => handleInputChange(ButtonRingZone.BA3, input), currentInput[1]);
-            DebouncedHandleInputChange(ButtonRingZone.ArrowUp, (input) => handleInputChange(ButtonRingZone.ArrowUp, input), currentInput[8]);
-            DebouncedHandleInputChange(ButtonRingZone.BA1, (input) => handleInputChange(ButtonRingZone.BA1, input), currentInput[3]);
-            DebouncedHandleInputChange(ButtonRingZone.BA2, (input) => handleInputChange(ButtonRingZone.BA2, input), currentInput[2]);
-            DebouncedHandleInputChange(ButtonRingZone.ArrowDown, (input) => handleInputChange(ButtonRingZone.ArrowDown, input), currentInput[10]);
-            DebouncedHandleInputChange(ButtonRingZone.BA4, (input) => handleInputChange(ButtonRingZone.BA4, input), currentInput[0]);
-            DebouncedHandleInputChange(ButtonRingZone.BA5, (input) => handleInputChange(ButtonRingZone.BA5, input), currentInput[7]);
-            DebouncedHandleInputChange(ButtonRingZone.BA6, (input) => handleInputChange(ButtonRingZone.BA6, input), currentInput[6]);
-            DebouncedHandleInputChange(ButtonRingZone.BA7, (input) => handleInputChange(ButtonRingZone.BA7, input), currentInput[5]);
-            DebouncedHandleInputChange(ButtonRingZone.BA8, (input) => handleInputChange(ButtonRingZone.BA8, input), currentInput[4]);
-            DebouncedHandleInputChange(ButtonRingZone.Select, (input) => handleInputChange(ButtonRingZone.Select, input), currentInput[9]);
-            DebouncedHandleInputChange(ButtonRingZone.InsertCoin, (input) => handleInputChange(ButtonRingZone.InsertCoin, input), currentInput[11]);
+            bool HandleBA3(byte input) => handleInputChange(ButtonRingZone.BA3, input);
+            bool HandleArrowUp(byte input) => handleInputChange(ButtonRingZone.ArrowUp, input);
+            bool HandleBA1(byte input) => handleInputChange(ButtonRingZone.BA1, input);
+            bool HandleBA2(byte input) => handleInputChange(ButtonRingZone.BA2, input);
+            bool HandleArrowDown(byte input) => handleInputChange(ButtonRingZone.ArrowDown, input);
+            bool HandleBA4(byte input) => handleInputChange(ButtonRingZone.BA4, input);
+            bool HandleBA5(byte input) => handleInputChange(ButtonRingZone.BA5, input);
+            bool HandleBA6(byte input) => handleInputChange(ButtonRingZone.BA6, input);
+            bool HandleBA7(byte input) => handleInputChange(ButtonRingZone.BA7, input);
+            bool HandleBA8(byte input) => handleInputChange(ButtonRingZone.BA8, input);
+            bool HandleSelect(byte input) => handleInputChange(ButtonRingZone.Select, input);
+            bool HandleInsertCoin(byte input) => handleInputChange(ButtonRingZone.InsertCoin, input);
+
+            DebouncedHandleInputChange(ButtonRingZone.BA3, HandleBA3, currentInput[1]);
+            DebouncedHandleInputChange(ButtonRingZone.ArrowUp, HandleArrowUp, currentInput[8]);
+            DebouncedHandleInputChange(ButtonRingZone.BA1, HandleBA1, currentInput[3]);
+            DebouncedHandleInputChange(ButtonRingZone.BA2, HandleBA2, currentInput[2]);
+            DebouncedHandleInputChange(ButtonRingZone.ArrowDown, HandleArrowDown, currentInput[10]);
+            DebouncedHandleInputChange(ButtonRingZone.BA4, HandleBA4, currentInput[0]);
+            DebouncedHandleInputChange(ButtonRingZone.BA5, HandleBA5, currentInput[7]);
+            DebouncedHandleInputChange(ButtonRingZone.BA6, HandleBA6, currentInput[6]);
+            DebouncedHandleInputChange(ButtonRingZone.BA7, HandleBA7, currentInput[5]);
+            DebouncedHandleInputChange(ButtonRingZone.BA8, HandleBA8, currentInput[4]);
+            DebouncedHandleInputChange(ButtonRingZone.Select, HandleSelect, currentInput[9]);
+            DebouncedHandleInputChange(ButtonRingZone.InsertCoin, HandleInsertCoin, currentInput[11]);
 
             currentInput.CopyTo(_currentState);
         }

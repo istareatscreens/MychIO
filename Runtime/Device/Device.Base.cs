@@ -1,5 +1,6 @@
 using System;
 using System.Collections.Generic;
+using System.Diagnostics;
 using System.Runtime.CompilerServices;
 using System.Threading.Tasks;
 using MychIO.Connection;
@@ -7,11 +8,15 @@ using MychIO.Connection;
 namespace MychIO.Device
 {
     // Important class cannot have more than 1 constructor (see Device Factory)
-    public abstract partial class Device<T1, T2, T3> : IDevice<T1, T2> where T1 : Enum where T3 : IConnectionProperties where T2 : Enum
+    public abstract partial class Device<T1, T2, T3> : IDevice<T1, T2> 
+        where T1 : Enum 
+        where T3 : IConnectionProperties 
+        where T2 : Enum
     {
         // Debounce Properties
-        protected readonly Dictionary<T1, DateTime> _lastInputTriggerTimes;
+        protected readonly Dictionary<T1, long> _lastInputTriggerTimes;
         protected TimeSpan _debounceTime;
+        private static readonly Stopwatch _stopwatch = Stopwatch.StartNew();
 
         protected const byte MOST_SIGNIFICANT_BIT = 0b10000000;
         protected const byte LEAST_SIGNIFICANT_BIT = 0b00000001;
@@ -34,7 +39,6 @@ namespace MychIO.Device
             IOManager manager = null
         )
         {
-
             // pull base class static methods
             var defaultProperties = (IConnectionProperties)GetBaseClassStaticMethod("GetDefaultConnectionProperties", GetType()).Invoke(null, null);
             _classification = (DeviceClassification)GetBaseClassStaticMethod("GetDeviceClassification", GetType()).Invoke(null, null);
@@ -53,18 +57,18 @@ namespace MychIO.Device
                 defaultProperties.UpdateProperties(connectionProperties) :
                 defaultProperties;
 
-            // Send errors that occured when applying properties
+            // send errors that occured when applying properties
             foreach (var error in _connectionProperties.GetErrors())
             {
                 manager.handleEvent(Event.IOEventType.InvalidDevicePropertyError, _classification, error);
             }
 
-            // Setup debounce
+            // Setup Debounce
             _debounceTime = _connectionProperties.GetDebounceTime();
-            _lastInputTriggerTimes = new Dictionary<T1, DateTime>();
+            _lastInputTriggerTimes = new Dictionary<T1, long>();
             foreach (T1 zone in Enum.GetValues(typeof(T1)))
             {
-                _lastInputTriggerTimes[zone] = DateTime.MinValue;
+                _lastInputTriggerTimes[zone] = 0; // Initialize with 0 milliseconds
             }
 
             // Connect
@@ -166,20 +170,21 @@ namespace MychIO.Device
         public abstract void ReadDataDebounce(IntPtr intPtr);
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        protected void DebouncedHandleInputChange<T4>(T1 zone, Func<T4,bool> callback, T4 input)
+        protected void DebouncedHandleInputChange<T4>(T1 zone, Func<T4, bool> callback, T4 input)
         {
-            DateTime now = DateTime.UtcNow;
+            long now = _stopwatch.ElapsedMilliseconds;
 
             var diff = now - _lastInputTriggerTimes[zone];
-            if (diff < _debounceTime)
+            if (diff < _debounceTime.TotalMilliseconds)
             {
 #if DEBUG
                 _manager.handleEvent(Event.IOEventType.Debug, 
                                      _classification, 
-                                     $"[Debounce] Received device response\nInterval: {diff.Milliseconds}ms");
+                                     $"[Debounce] Received device response\nInterval: {diff}ms");
 #endif
                 return;
             }
+
             // handle input and check if there has been a change
             if (callback(input))
             {
