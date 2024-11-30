@@ -125,6 +125,7 @@ namespace MychIO.Device
             await Write(TouchPanelCommand.Start);
         }
 
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public override void ReadDataDebounce(byte[] data)
         {
             if (data[0] != '(')
@@ -247,6 +248,7 @@ namespace MychIO.Device
             currentInput.CopyTo(_currentState);
         }
 
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public override void ReadData(byte[] data)
         {
             // ensure buffer is aligned
@@ -372,6 +374,7 @@ namespace MychIO.Device
         }
 
         // source: https://stackoverflow.com/a/48599119
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
         private static bool ByteArraysEqual(ReadOnlySpan<byte> a1, ReadOnlySpan<byte> a2)
         {
             return a1.SequenceEqual(a2);

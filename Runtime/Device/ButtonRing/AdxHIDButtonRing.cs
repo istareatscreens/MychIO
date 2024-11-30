@@ -78,6 +78,7 @@ namespace MychIO.Device
             _currentState = NO_INPUT_PACKET;
         }
 
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public unsafe override void ReadDataDebounce(IntPtr pointer)
         {
             if (pointer == IntPtr.Zero)
@@ -126,6 +127,7 @@ namespace MychIO.Device
             currentInput.CopyTo(_currentState);
         }
 
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public unsafe override void ReadData(IntPtr pointer)
         {
 
@@ -193,6 +195,7 @@ namespace MychIO.Device
         }
 
         // source: https://stackoverflow.com/a/48599119
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
         private static bool ByteArraysEqual(ReadOnlySpan<byte> a1, ReadOnlySpan<byte> a2)
         {
             return a1.SequenceEqual(a2);
