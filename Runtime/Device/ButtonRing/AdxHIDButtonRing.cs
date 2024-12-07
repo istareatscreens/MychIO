@@ -78,6 +78,7 @@ namespace MychIO.Device
             _currentState = NO_INPUT_PACKET;
         }
 
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public unsafe override void ReadDataDebounce(IntPtr pointer)
         {
             if (pointer == IntPtr.Zero)
@@ -85,7 +86,7 @@ namespace MychIO.Device
                 return;
             }
 
-            byte[] currentInput = new byte[BYTES_TO_READ];
+            Span<byte> currentInput = stackalloc byte[BYTES_TO_READ];
             byte* pByte = (byte*)pointer;
             for (int i = 0; i < BYTES_TO_READ; i++)
             {
@@ -97,22 +98,36 @@ namespace MychIO.Device
                 return;
             }
 
-            DebouncedHandleInputChange(ButtonRingZone.BA3, () => handleInputChange(ButtonRingZone.BA3, currentInput[1]));
-            DebouncedHandleInputChange(ButtonRingZone.ArrowUp, () => handleInputChange(ButtonRingZone.ArrowUp, currentInput[8]));
-            DebouncedHandleInputChange(ButtonRingZone.BA1, () => handleInputChange(ButtonRingZone.BA1, currentInput[3]));
-            DebouncedHandleInputChange(ButtonRingZone.BA2, () => handleInputChange(ButtonRingZone.BA2, currentInput[2]));
-            DebouncedHandleInputChange(ButtonRingZone.ArrowDown, () => handleInputChange(ButtonRingZone.ArrowDown, currentInput[10]));
-            DebouncedHandleInputChange(ButtonRingZone.BA4, () => handleInputChange(ButtonRingZone.BA4, currentInput[0]));
-            DebouncedHandleInputChange(ButtonRingZone.BA5, () => handleInputChange(ButtonRingZone.BA5, currentInput[7]));
-            DebouncedHandleInputChange(ButtonRingZone.BA6, () => handleInputChange(ButtonRingZone.BA6, currentInput[6]));
-            DebouncedHandleInputChange(ButtonRingZone.BA7, () => handleInputChange(ButtonRingZone.BA7, currentInput[5]));
-            DebouncedHandleInputChange(ButtonRingZone.BA8, () => handleInputChange(ButtonRingZone.BA8, currentInput[4]));
-            DebouncedHandleInputChange(ButtonRingZone.Select, () => handleInputChange(ButtonRingZone.Select, currentInput[9]));
-            DebouncedHandleInputChange(ButtonRingZone.InsertCoin, () => handleInputChange(ButtonRingZone.InsertCoin, currentInput[11]));
+            bool HandleBA3(byte input) => handleInputChange(ButtonRingZone.BA3, input);
+            bool HandleArrowUp(byte input) => handleInputChange(ButtonRingZone.ArrowUp, input);
+            bool HandleBA1(byte input) => handleInputChange(ButtonRingZone.BA1, input);
+            bool HandleBA2(byte input) => handleInputChange(ButtonRingZone.BA2, input);
+            bool HandleArrowDown(byte input) => handleInputChange(ButtonRingZone.ArrowDown, input);
+            bool HandleBA4(byte input) => handleInputChange(ButtonRingZone.BA4, input);
+            bool HandleBA5(byte input) => handleInputChange(ButtonRingZone.BA5, input);
+            bool HandleBA6(byte input) => handleInputChange(ButtonRingZone.BA6, input);
+            bool HandleBA7(byte input) => handleInputChange(ButtonRingZone.BA7, input);
+            bool HandleBA8(byte input) => handleInputChange(ButtonRingZone.BA8, input);
+            bool HandleSelect(byte input) => handleInputChange(ButtonRingZone.Select, input);
+            bool HandleInsertCoin(byte input) => handleInputChange(ButtonRingZone.InsertCoin, input);
 
-            _currentState = currentInput;
+            DebouncedHandleInputChange(ButtonRingZone.BA3, HandleBA3, currentInput[1]);
+            DebouncedHandleInputChange(ButtonRingZone.ArrowUp, HandleArrowUp, currentInput[8]);
+            DebouncedHandleInputChange(ButtonRingZone.BA1, HandleBA1, currentInput[3]);
+            DebouncedHandleInputChange(ButtonRingZone.BA2, HandleBA2, currentInput[2]);
+            DebouncedHandleInputChange(ButtonRingZone.ArrowDown, HandleArrowDown, currentInput[10]);
+            DebouncedHandleInputChange(ButtonRingZone.BA4, HandleBA4, currentInput[0]);
+            DebouncedHandleInputChange(ButtonRingZone.BA5, HandleBA5, currentInput[7]);
+            DebouncedHandleInputChange(ButtonRingZone.BA6, HandleBA6, currentInput[6]);
+            DebouncedHandleInputChange(ButtonRingZone.BA7, HandleBA7, currentInput[5]);
+            DebouncedHandleInputChange(ButtonRingZone.BA8, HandleBA8, currentInput[4]);
+            DebouncedHandleInputChange(ButtonRingZone.Select, HandleSelect, currentInput[9]);
+            DebouncedHandleInputChange(ButtonRingZone.InsertCoin, HandleInsertCoin, currentInput[11]);
+
+            currentInput.CopyTo(_currentState);
         }
 
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public unsafe override void ReadData(IntPtr pointer)
         {
 
@@ -166,12 +181,14 @@ namespace MychIO.Device
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         private bool handleInputChange(ButtonRingZone zone, byte input)
         {
-            _currentActiveStates.TryGetValue(zone, out var currentActiveState);
-            if ((input == LEAST_SIGNIFICANT_BIT) != currentActiveState)
+            var currentActiveState =  _currentActiveStates[zone];
+            if ((LEAST_SIGNIFICANT_BIT == input) != currentActiveState)
             {
-                _inputSubscriptions.TryGetValue(zone, out var callback);
-                var newState = currentActiveState ? InputState.Off : InputState.On;
-                callback(zone, newState);
+                _inputSubscriptions[zone]
+                (
+                    zone, 
+                    currentActiveState ? InputState.Off : InputState.On
+                );
                 _currentActiveStates[zone] = !currentActiveState;
                 return true;
             }
@@ -179,6 +196,7 @@ namespace MychIO.Device
         }
 
         // source: https://stackoverflow.com/a/48599119
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
         private static bool ByteArraysEqual(ReadOnlySpan<byte> a1, ReadOnlySpan<byte> a2)
         {
             return a1.SequenceEqual(a2);
