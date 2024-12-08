@@ -6,6 +6,7 @@ namespace MychIO.Device
         ButtonRing,
         LedDevice,
         // Used exclusively for events not specific to a device
+        DancePad,
         Undefined,
     }
 }

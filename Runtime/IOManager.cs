@@ -124,6 +124,21 @@ namespace MychIO
                 ConvertDictionary(new Dictionary<Enum, Action<Enum, Enum>>())
             );
         }
+        public void AddDancePad(
+            string deviceName,
+            IDictionary<string, dynamic>? connectionProperties = null,
+            IDictionary<TouchPanelZone, Action<DancePadZone, InputState>>? inputSubscriptions = null
+        )
+        {
+            EnsureAllInputStatesAreAccountedFor(inputSubscriptions);
+            AddDeviceByName
+           (
+               deviceName,
+               connectionProperties,
+               DeviceClassification.DancePad,
+               ConvertDictionary(inputSubscriptions)
+           );
+        }
         public void AddDeviceErrorHandler(IDeviceErrorHandler errorHandler)
         {
             if (_deviceErrorHandler is null)

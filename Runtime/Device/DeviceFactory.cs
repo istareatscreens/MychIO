@@ -18,6 +18,7 @@ namespace MychIO.Device
             { AdxIO4ButtonRing.GetDeviceName(), typeof(AdxIO4ButtonRing) },
             { AdxHIDButtonRing.GetDeviceName(), typeof(AdxHIDButtonRing) },
             { AdxLedDevice.GetDeviceName(), typeof(AdxLedDevice) },
+            { LTEKHIDDancePad.GetDeviceName(), typeof(LTEKHIDDancePad) },
             // Add other devices here...
         };
 
