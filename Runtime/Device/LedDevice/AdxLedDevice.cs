@@ -1,9 +1,14 @@
 using System;
+using System.Buffers;
 using System.Collections.Generic;
 using System.Linq;
+using System.Runtime.CompilerServices;
+using System.Runtime.InteropServices;
 using System.Threading.Tasks;
 using MychIO.Connection;
 using MychIO.Connection.SerialDevice;
+using MychIO.Helper;
+using UnityEngine;
 
 namespace MychIO.Device
 {
@@ -61,6 +66,54 @@ namespace MychIO.Device
                 {
                     new byte[] {0xE0, 0x11, 0x01, 0x01, 0x3C, 0x4F }
                 }
+            },
+            {
+                LedCommand.SetColor0, new byte[][]
+                {
+                    new byte[] { 0xE0, 0x11, 0x01, 0x05, 0x31, 0x01, 0x00, 0x00, 0x00, 0x00 }
+                }
+            },
+            {
+                LedCommand.SetColor1, new byte[][]
+                {
+                    new byte[] { 0xE0, 0x11, 0x01, 0x05, 0x31, 0x01, 0x00, 0x00, 0x00, 0x00 }
+                }
+            },
+            {
+                LedCommand.SetColor2, new byte[][]
+                {
+                    new byte[] { 0xE0, 0x11, 0x01, 0x05, 0x31, 0x01, 0x00, 0x00, 0x00, 0x00 }
+                }
+            },
+            {
+                LedCommand.SetColor3, new byte[][]
+                {
+                    new byte[] { 0xE0, 0x11, 0x01, 0x05, 0x31, 0x01, 0x00, 0x00, 0x00, 0x00 }
+                }
+            },
+            {
+                LedCommand.SetColor4, new byte[][]
+                {
+                    new byte[] { 0xE0, 0x11, 0x01, 0x05, 0x31, 0x01, 0x00, 0x00, 0x00, 0x00 }
+                }
+            },
+            {
+                LedCommand.SetColor5, new byte[][]
+                {
+                    new byte[] { 0xE0, 0x11, 0x01, 0x05, 0x31, 0x01, 0x00, 0x00, 0x00, 0x00 }
+                }
+            },
+            {
+                LedCommand.SetColor6, new byte[][]
+                {
+                    new byte[] { 0xE0, 0x11, 0x01, 0x05, 0x31, 0x01, 0x00, 0x00, 0x00, 0x00 }
+                }
+            },
+            {
+                LedCommand.SetColor7, new byte[][]
+                {
+                    new byte[] { 0xE0, 0x11, 0x01, 0x05, 0x31, 0x01, 0x00, 0x00, 0x00, 0x00 }
+                }
             }
         };
 
@@ -106,26 +159,86 @@ namespace MychIO.Device
         {
             _currentState = NO_INPUT_PACKET;
         }
+        async Task SetColor(Color newColor,int index)
+        {
+            var packet = Commands[(LedCommand)(2 + index)][0];
+            packet[5] = (byte)index;
+            packet[6] = (byte)(newColor.r * 255);
+            packet[7] = (byte)(newColor.g * 255);
+            packet[8] = (byte)(newColor.b * 255);
+            packet[9] = CalculateCheckSum(packet.AsSpan().Slice(0, 9));
 
+            await _connection.Write(packet);
+        }
+        byte CalculateCheckSum(Span<byte> bytes)
+        {
+            byte sum = 0;
+            for (int i = 1; i < bytes.Length; i++)
+            {
+                sum += bytes[i];
+            }
+            return sum;
+        }
         public override async Task Write<T>(params T[] interactions)
         {
-            var commandBytes = interactions.OfType<LedCommand>()
-            .SelectMany(command =>
+            // data = [LedCommand, Red, Green, Blue]
+            for (var i = 0; i < interactions.Length; i++)
             {
-                if (Commands.TryGetValue(command, out byte[][] bytes))
+                var value = Unsafe.As<T, int>(ref interactions[i]);
+                var data = ArrayPool<byte>.Shared.Rent(4);
+                MemoryMarshal.Write(data, ref value);
+                var command = (LedCommand)data[0];
+                switch(command)
                 {
-                    return bytes;
+                    case LedCommand.SetColor0:
+                    case LedCommand.SetColor1:
+                    case LedCommand.SetColor2:
+                    case LedCommand.SetColor3:
+                    case LedCommand.SetColor4:
+                    case LedCommand.SetColor5:
+                    case LedCommand.SetColor6:
+                    case LedCommand.SetColor7:
+                        var r = data[1];
+                        var g = data[2];
+                        var b = data[3];
+                        var newColor = new Color(r / 255, g / 255, b / 255);
+                        await SetColor(newColor, (int)command - 2);
+                        break;
+                    default:
+                        if(Commands.TryGetValue(command, out byte[][] bytes))
+                        {
+                            foreach(var _bytes in ArrayHelper.ToEnumerable(bytes))
+                            {
+                                await _connection.Write(_bytes);
+                            }
+                        }
+                        else
+                        {
+                            ArrayPool<byte>.Shared.Return(data);
+                            throw new ArgumentException("Command not found.", nameof(command));
+                        }
+                        break;
                 }
-                else
-                {
-                    throw new ArgumentException("Command not found.", nameof(command));
-                }
-            }).ToArray();
-
-            foreach (var command in commandBytes)
-            {
-                await _connection.Write(command);
+                ArrayPool<byte>.Shared.Return(data);
             }
+            
+            //var commandBytes = interactions.OfType<LedCommand>()
+            //.SelectMany(command =>
+            //{
+            //    if (Commands.TryGetValue(command, out byte[][] bytes))
+            //    {
+            //        return bytes;
+            //    }
+            //    else
+            //    {
+            //        throw new ArgumentException("Command not found.", nameof(command));
+            //    }
+            //}).ToArray();
+
+            //foreach (var command in commandBytes)
+            //{
+            //    await _connection.Write(command);
+            //}
         }
 
         // source: https://stackoverflow.com/a/48599119
