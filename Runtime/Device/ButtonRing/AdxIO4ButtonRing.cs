@@ -268,7 +268,7 @@ namespace MychIO.Device
         }
 
         // Not used
-        public override Task Write(params Enum[] interactions)
+        public override Task Write<T>(params T[] interactions)
         {
             return Task.CompletedTask;
         }

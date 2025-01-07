@@ -48,13 +48,20 @@ namespace MychIO.Device
 
         public static readonly IDictionary<LedCommand, byte[][]> Commands = new Dictionary<LedCommand, byte[][]>
         {
-            { LedCommand.ClearAll, new byte[][] {
+            {
+                LedCommand.ClearAll, new byte[][]
+                {
                     new byte[] {0xE0, 0x11, 0x01, 0x08, 0x32, 0x00, 0x20, 0x00, 0x00, 0x00, 0x00, 0x00, 0x6C},
                     new byte[] {0xE0, 0x11, 0x01, 0x04, 0x39, 0x00, 0x00, 0x00, 0x4F},
-                    new byte[] {0xE0, 0x11, 0x01, 0x01, 0x3C, 0x4F
-                  }
+                    new byte[] {0xE0, 0x11, 0x01, 0x01, 0x3C, 0x4F}
                 }
             },
+            {
+                LedCommand.Update, new byte[][]
+                {
+                    new byte[] {0xE0, 0x11, 0x01, 0x01, 0x3C, 0x4F }
+                }
+            }
         };
 
         public AdxLedDevice(
@@ -100,7 +107,7 @@ namespace MychIO.Device
             _currentState = NO_INPUT_PACKET;
         }
 
-        public override async Task Write(params Enum[] interactions)
+        public override async Task Write<T>(params T[] interactions)
         {
             var commandBytes = interactions.OfType<LedCommand>()
             .SelectMany(command =>

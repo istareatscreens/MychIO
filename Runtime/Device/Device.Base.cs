@@ -197,7 +197,7 @@ namespace MychIO.Device
             }
         }
 
-        public abstract Task Write(params Enum[] interactions);
+        public abstract Task Write<T>(params T[] interactions) where T:Enum;
 
         private static IDictionary<T1, Action<T1, T2>> CreateTypedDictionary(IDictionary<Enum, Action<Enum, Enum>> original)
         {
