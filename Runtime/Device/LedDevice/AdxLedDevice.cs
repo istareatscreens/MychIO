@@ -159,7 +159,7 @@ namespace MychIO.Device
         {
             _currentState = NO_INPUT_PACKET;
         }
-        async Task SetColor(Color newColor,int index)
+        async Task SetColorAsync(Color newColor,int index)
         {
             var packet = Commands[(LedCommand)(2 + index)][0];
             packet[5] = (byte)index;
@@ -179,16 +179,47 @@ namespace MychIO.Device
             }
             return sum;
         }
+        LedCommandInfo ParseCommand(ReadOnlyMemory<byte> buffer)
+        {
+            var bufferSpan = buffer.Span;
+            var command = (LedCommand)bufferSpan[0];
+            switch (command)
+            {
+                case LedCommand.SetColor0:
+                case LedCommand.SetColor1:
+                case LedCommand.SetColor2:
+                case LedCommand.SetColor3:
+                case LedCommand.SetColor4:
+                case LedCommand.SetColor5:
+                case LedCommand.SetColor6:
+                case LedCommand.SetColor7:
+                    var r = bufferSpan[1];
+                    var g = bufferSpan[2];
+                    var b = bufferSpan[3];
+                    var newColor = new Color(r / 255, g / 255, b / 255);
+                    return new ((int)command - 2,command, newColor);
+                default:
+                    return new(-1, command, null);
+            }
+        }
         public override async Task Write<T>(params T[] interactions)
         {
             // data = [LedCommand, Red, Green, Blue]
             for (var i = 0; i < interactions.Length; i++)
             {
-                var value = Unsafe.As<T, int>(ref interactions[i]);
-                var data = ArrayPool<byte>.Shared.Rent(4);
-                MemoryMarshal.Write(data, ref value);
-                var command = (LedCommand)data[0];
-                switch(command)
+                if (interactions[i] is null)
+                    continue;
+                LedCommandInfo cmdInfo;
+                using (var owner = MemoryPool<byte>.Shared.Rent(4))
+                {
+                    var value = Unsafe.As<T, int>(ref interactions[i]);
+                    var buffer = owner.Memory;
+                    MemoryMarshal.Write(buffer.Span, ref value);
+                    cmdInfo = ParseCommand(buffer);
+                }
+                var command = cmdInfo.Command;
+
+                switch (command)
                 {
                     case LedCommand.SetColor0:
                     case LedCommand.SetColor1:
@@ -198,28 +229,24 @@ namespace MychIO.Device
                     case LedCommand.SetColor5:
                     case LedCommand.SetColor6:
                     case LedCommand.SetColor7:
-                        var r = data[1];
-                        var g = data[2];
-                        var b = data[3];
-                        var newColor = new Color(r / 255, g / 255, b / 255);
-                        await SetColor(newColor, (int)command - 2);
+                        var newColor = (Color)cmdInfo.Color;
+                        await SetColorAsync(newColor, cmdInfo.Index);
                         break;
                     default:
-                        if(Commands.TryGetValue(command, out byte[][] bytes))
+                        if (Commands.TryGetValue(command, out byte[][] bytes))
                         {
-                            foreach(var _bytes in ArrayHelper.ToEnumerable(bytes))
+                            foreach (var _bytes in ArrayHelper.ToEnumerable(bytes))
                             {
                                 await _connection.Write(_bytes);
                             }
                         }
                         else
                         {
-                            ArrayPool<byte>.Shared.Return(data);
                             throw new ArgumentException("Command not found.", nameof(command));
                         }
                         break;
                 }
-                ArrayPool<byte>.Shared.Return(data);
+
             }
             
             //var commandBytes = interactions.OfType<LedCommand>()
@@ -254,6 +281,22 @@ namespace MychIO.Device
         }
         public override void ReadDataDebounce(IntPtr intPtr) { }
 
+        readonly struct LedCommandInfo
+        {
+            /// <summary>
+            /// Indicates which LED the command is effective for. When the value is -1, it means that the command is effective for multiple devices.
+            /// </summary>
+            public int Index { get; }
+            public LedCommand Command { get; }
+            public Color? Color { get; }
+            public LedCommandInfo(int index, LedCommand command, Color? color)
+            {
+                Index = index;
+                Command = command;
+                Color = color;
+            }
+
+        }
     }
 
 }
