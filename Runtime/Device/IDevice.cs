@@ -23,7 +23,7 @@ namespace MychIO.Device
         void StartReading();
         bool CanConnect(IDevice device);
         IConnection GetConnection();
-        Task Write(params Enum[] interactions);
+        Task Write<T>(params T[] interactions) where T: Enum;
         DeviceClassification GetClassification();
         IConnectionProperties GetConnectionProperties();
     }

@@ -352,7 +352,7 @@ namespace MychIO.Device
             _currentState = NO_INPUT_PACKET;
         }
 
-        public override async Task Write(params Enum[] interactions)
+        public override async Task Write<T>(params T[] interactions)
         {
             var commandBytes = interactions.OfType<TouchPanelCommand>()
             .SelectMany(command =>

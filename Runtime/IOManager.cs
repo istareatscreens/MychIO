@@ -153,7 +153,7 @@ namespace MychIO
             return newDict;
         }
 
-        public async Task WriteToDevice(DeviceClassification deviceClassification, params Enum[] command)
+        public async Task WriteToDevice<T>(DeviceClassification deviceClassification, params T[] command) where T:Enum
         {
             if (_deviceClassificationToDevice.TryGetValue(deviceClassification, out var device) && device.IsConnected())
             {
