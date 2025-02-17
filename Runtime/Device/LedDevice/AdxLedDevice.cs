@@ -205,67 +205,48 @@ namespace MychIO.Device
         public override async Task Write<T>(params T[] interactions)
         {
             // data = [LedCommand, Red, Green, Blue]
-            for (var i = 0; i < interactions.Length; i++)
+            using (var owner = MemoryPool<byte>.Shared.Rent(4))
             {
-                if (interactions[i] is null)
-                    continue;
-                LedCommandInfo cmdInfo;
-                using (var owner = MemoryPool<byte>.Shared.Rent(4))
+                for (var i = 0; i < interactions.Length; i++)
                 {
+                    if (interactions[i] is null)
+                        continue;
+
                     var value = Unsafe.As<T, int>(ref interactions[i]);
                     var buffer = owner.Memory;
                     MemoryMarshal.Write(buffer.Span, ref value);
-                    cmdInfo = ParseCommand(buffer);
-                }
-                var command = cmdInfo.Command;
+                    var cmdInfo = ParseCommand(buffer);
+                    var command = cmdInfo.Command;
 
-                switch (command)
-                {
-                    case LedCommand.SetColor0:
-                    case LedCommand.SetColor1:
-                    case LedCommand.SetColor2:
-                    case LedCommand.SetColor3:
-                    case LedCommand.SetColor4:
-                    case LedCommand.SetColor5:
-                    case LedCommand.SetColor6:
-                    case LedCommand.SetColor7:
-                        var newColor = (Color)cmdInfo.Color;
-                        await SetColorAsync(newColor, cmdInfo.Index);
-                        break;
-                    default:
-                        if (Commands.TryGetValue(command, out byte[][] bytes))
-                        {
-                            foreach (var _bytes in ArrayHelper.ToEnumerable(bytes))
+                    switch (command)
+                    {
+                        case LedCommand.SetColor0:
+                        case LedCommand.SetColor1:
+                        case LedCommand.SetColor2:
+                        case LedCommand.SetColor3:
+                        case LedCommand.SetColor4:
+                        case LedCommand.SetColor5:
+                        case LedCommand.SetColor6:
+                        case LedCommand.SetColor7:
+                            var newColor = (Color)cmdInfo.Color;
+                            await SetColorAsync(newColor, cmdInfo.Index);
+                            break;
+                        default:
+                            if (Commands.TryGetValue(command, out byte[][] bytes))
                             {
-                                await _connection.Write(_bytes);
+                                foreach (var _bytes in ArrayHelper.ToEnumerable(bytes))
+                                {
+                                    await _connection.Write(_bytes);
+                                }
                             }
-                        }
-                        else
-                        {
-                            throw new ArgumentException("Command not found.", nameof(command));
-                        }
-                        break;
+                            else
+                            {
+                                throw new ArgumentException("Command not found.", nameof(command));
+                            }
+                            break;
+                    }
                 }
-
             }
-            
-            //var commandBytes = interactions.OfType<LedCommand>()
-            //.SelectMany(command =>
-            //{
-            //    if (Commands.TryGetValue(command, out byte[][] bytes))
-            //    {
-            //        return bytes;
-            //    }
-            //    else
-            //    {
-            //        throw new ArgumentException("Command not found.", nameof(command));
-            //    }
-            //}).ToArray();
-
-            //foreach (var command in commandBytes)
-            //{
-            //    await _connection.Write(command);
-            //}
         }
 
         // source: https://stackoverflow.com/a/48599119
