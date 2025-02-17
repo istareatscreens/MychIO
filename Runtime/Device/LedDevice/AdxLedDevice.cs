@@ -68,49 +68,49 @@ namespace MychIO.Device
                 }
             },
             {
-                LedCommand.SetColor0, new byte[][]
+                LedCommand.SetColorBA1, new byte[][]
                 {
                     new byte[] { 0xE0, 0x11, 0x01, 0x05, 0x31, 0x01, 0x00, 0x00, 0x00, 0x00 }
                 }
             },
             {
-                LedCommand.SetColor1, new byte[][]
+                LedCommand.SetColorBA2, new byte[][]
                 {
                     new byte[] { 0xE0, 0x11, 0x01, 0x05, 0x31, 0x01, 0x00, 0x00, 0x00, 0x00 }
                 }
             },
             {
-                LedCommand.SetColor2, new byte[][]
+                LedCommand.SetColorBA3, new byte[][]
                 {
                     new byte[] { 0xE0, 0x11, 0x01, 0x05, 0x31, 0x01, 0x00, 0x00, 0x00, 0x00 }
                 }
             },
             {
-                LedCommand.SetColor3, new byte[][]
+                LedCommand.SetColorBA4, new byte[][]
                 {
                     new byte[] { 0xE0, 0x11, 0x01, 0x05, 0x31, 0x01, 0x00, 0x00, 0x00, 0x00 }
                 }
             },
             {
-                LedCommand.SetColor4, new byte[][]
+                LedCommand.SetColorBA5, new byte[][]
                 {
                     new byte[] { 0xE0, 0x11, 0x01, 0x05, 0x31, 0x01, 0x00, 0x00, 0x00, 0x00 }
                 }
             },
             {
-                LedCommand.SetColor5, new byte[][]
+                LedCommand.SetColorBA6, new byte[][]
                 {
                     new byte[] { 0xE0, 0x11, 0x01, 0x05, 0x31, 0x01, 0x00, 0x00, 0x00, 0x00 }
                 }
             },
             {
-                LedCommand.SetColor6, new byte[][]
+                LedCommand.SetColorBA7, new byte[][]
                 {
                     new byte[] { 0xE0, 0x11, 0x01, 0x05, 0x31, 0x01, 0x00, 0x00, 0x00, 0x00 }
                 }
             },
             {
-                LedCommand.SetColor7, new byte[][]
+                LedCommand.SetColorBA8, new byte[][]
                 {
                     new byte[] { 0xE0, 0x11, 0x01, 0x05, 0x31, 0x01, 0x00, 0x00, 0x00, 0x00 }
                 }
@@ -185,14 +185,14 @@ namespace MychIO.Device
             var command = (LedCommand)bufferSpan[0];
             switch (command)
             {
-                case LedCommand.SetColor0:
-                case LedCommand.SetColor1:
-                case LedCommand.SetColor2:
-                case LedCommand.SetColor3:
-                case LedCommand.SetColor4:
-                case LedCommand.SetColor5:
-                case LedCommand.SetColor6:
-                case LedCommand.SetColor7:
+                case LedCommand.SetColorBA1:
+                case LedCommand.SetColorBA2:
+                case LedCommand.SetColorBA3:
+                case LedCommand.SetColorBA4:
+                case LedCommand.SetColorBA5:
+                case LedCommand.SetColorBA6:
+                case LedCommand.SetColorBA7:
+                case LedCommand.SetColorBA8:
                     var r = bufferSpan[1];
                     var g = bufferSpan[2];
                     var b = bufferSpan[3];
@@ -220,14 +220,14 @@ namespace MychIO.Device
 
                     switch (command)
                     {
-                        case LedCommand.SetColor0:
-                        case LedCommand.SetColor1:
-                        case LedCommand.SetColor2:
-                        case LedCommand.SetColor3:
-                        case LedCommand.SetColor4:
-                        case LedCommand.SetColor5:
-                        case LedCommand.SetColor6:
-                        case LedCommand.SetColor7:
+                        case LedCommand.SetColorBA1:
+                        case LedCommand.SetColorBA2:
+                        case LedCommand.SetColorBA3:
+                        case LedCommand.SetColorBA4:
+                        case LedCommand.SetColorBA5:
+                        case LedCommand.SetColorBA6:
+                        case LedCommand.SetColorBA7:
+                        case LedCommand.SetColorBA8:
                             var newColor = (Color)cmdInfo.Color;
                             await SetColorAsync(newColor, cmdInfo.Index);
                             break;

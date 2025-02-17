@@ -4,13 +4,13 @@ namespace MychIO.Device
     {
         ClearAll,
         Update,
-        SetColor0,
-        SetColor1,
-        SetColor2,
-        SetColor3,
-        SetColor4,
-        SetColor5,
-        SetColor6,
-        SetColor7,
+        SetColorBA1,
+        SetColorBA2,
+        SetColorBA3,
+        SetColorBA4,
+        SetColorBA5,
+        SetColorBA6,
+        SetColorBA7,
+        SetColorBA8,
     }
 }
