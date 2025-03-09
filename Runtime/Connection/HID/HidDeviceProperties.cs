@@ -18,7 +18,6 @@ namespace MychIO.Connection.HidDevice
             int leftBytesToTruncate = 0,
             int bytesToRead = 64,
             int pollingRateMs = 0,
-            // Device Class specific properties
             int? debounceTimeMs = 0
         ) : base(debounceTimeMs ?? 0)
         {
@@ -40,7 +39,6 @@ namespace MychIO.Connection.HidDevice
             int? leftBytesToTruncate = null,
             int? bytesToRead = null,
             int? pollingRateMs = null,
-            // Device Class specific properties
             int? debounceTimeMs = 0
         ) : base(debounceTimeMs ?? existing.DebounceTimeMs)
         {
@@ -54,6 +52,9 @@ namespace MychIO.Connection.HidDevice
         }
 
 
-        public override ConnectionType GetConnectionType() => ConnectionType.SerialDevice;
+        public override ConnectionType ConnectionType
+        {
+            get => ConnectionType.SerialDevice;
+        }
     }
 }

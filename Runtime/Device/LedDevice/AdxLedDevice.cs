@@ -4,6 +4,7 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Runtime.CompilerServices;
 using System.Runtime.InteropServices;
+using Unity.Collections.LowLevel.Unsafe;
 using System.Threading.Tasks;
 using MychIO.Connection;
 using MychIO.Connection.SerialDevice;
@@ -14,6 +15,18 @@ namespace MychIO.Device
 {
     public class AdxLedDevice : Device<LedInteractions, InputState, SerialDeviceProperties>
     {
+        public override string Name
+        {
+            get => DEVICE_NAME;
+        }
+        public override bool CanRead
+        {
+            get => false;
+        }
+        public override bool CanWrite
+        {
+            get => true;
+        }
         public const string DEVICE_NAME = "AdxLedDevice";
 
         // Settings for microoptimization
@@ -23,7 +36,6 @@ namespace MychIO.Device
         public static new ConnectionType GetConnectionType() => ConnectionType.SerialDevice;
         public static new DeviceClassification GetDeviceClassification() => DeviceClassification.LedDevice;
         public static new string GetDeviceName() => DEVICE_NAME;
-        public override string DeviceName() => DEVICE_NAME;
         public static new IConnectionProperties GetDefaultConnectionProperties() => new SerialDeviceProperties(
             comPortNumber: "COM21",
             writeTimeoutMS: SerialDeviceProperties.DEFAULT_WRITE_TIMEOUT_MS,
@@ -40,14 +52,14 @@ namespace MychIO.Device
         );
         public new static SerialDeviceProperties GetDefaultDeviceProperties() => (SerialDeviceProperties)GetDefaultConnectionProperties();
         // ** Connection Properties 
-        private static readonly byte[] NO_INPUT_PACKET = new byte[]
+        private static readonly ReadOnlyMemory<byte> NO_INPUT_PACKET = new byte[]
         {
             0x28, 0x00, 0x00, 0x00,
             0x00, 0x00, 0x00, 0x00,
             0x29
         };
 
-        private byte[] _currentState = NO_INPUT_PACKET;
+        private byte[] _currentState = new byte[BYTES_TO_READ];
         //private byte[] _currentInput = new byte[BYTES_TO_READ];
         private IDictionary<LedInteractions, bool> _currentActiveStates;
 
@@ -123,6 +135,7 @@ namespace MychIO.Device
             IOManager manager = null
         ) : base(inputSubscriptions, connectionProperties, manager)
         {
+            NO_INPUT_PACKET.CopyTo(_currentState);
             // current states
             _currentActiveStates = new Dictionary<LedInteractions, bool>();
             foreach (LedInteractions zone in Enum.GetValues(typeof(LedInteractions)))
@@ -130,8 +143,11 @@ namespace MychIO.Device
                 _currentActiveStates[zone] = false;
             }
         }
-
-        public override async Task OnStartWrite()
+        public override void OnConnected()
+        {
+            OnConnectedAsync().Wait();
+        }
+        public override async Task OnConnectedAsync()
         {
             // Establish connection with LED device
             foreach (var command in new byte[][]{
@@ -141,25 +157,26 @@ namespace MychIO.Device
             }
             )
             {
-                await _connection.Write(command);
+                await _connection.WriteAsync(command);
             }
-            await Write(LedCommand.ClearAll);
+            await WriteAsync(LedCommand.ClearAll);
 
         }
-
-        public async override Task OnDisconnectWrite()
+        public override void OnDisconnected()
         {
-            await Write(LedCommand.ClearAll);
+            OnDisconnectedAsync().Wait();
+        }
+        public async override Task OnDisconnectedAsync()
+        {
+            await WriteAsync(LedCommand.ClearAll);
         }
 
-        public override void ReadData(byte[] data) { }
-        public override void ReadDataDebounce(byte[] data) { }
 
         public override void ResetState()
         {
-            _currentState = NO_INPUT_PACKET;
+            NO_INPUT_PACKET.CopyTo(_currentState);
         }
-        async Task SetColorAsync(Color newColor,int index)
+        async Task SetColorAsync(Color newColor, int index)
         {
             var packet = Commands[(LedCommand)(2 + index)][0];
             packet[5] = (byte)index;
@@ -168,7 +185,7 @@ namespace MychIO.Device
             packet[8] = (byte)(newColor.b * 255);
             packet[9] = CalculateCheckSum(packet.AsSpan().Slice(0, 9));
 
-            await _connection.Write(packet);
+            await _connection.WriteAsync(packet);
         }
         byte CalculateCheckSum(Span<byte> bytes)
         {
@@ -197,12 +214,16 @@ namespace MychIO.Device
                     var g = bufferSpan[2];
                     var b = bufferSpan[3];
                     var newColor = new Color(r / 255, g / 255, b / 255);
-                    return new ((int)command - 2,command, newColor);
+                    return new((int)command - 2, command, newColor);
                 default:
                     return new(-1, command, null);
             }
         }
-        public override async Task Write<T>(params T[] interactions)
+        public override void Write<T>(params T[] interactions)
+        {
+            WriteAsync(interactions).Wait();
+        }
+        public override async Task WriteAsync<T>(params T[] interactions)
         {
             // data = [LedCommand, Red, Green, Blue]
             using (var owner = MemoryPool<byte>.Shared.Rent(4))
@@ -212,7 +233,7 @@ namespace MychIO.Device
                     if (interactions[i] is null)
                         continue;
 
-                    var value = Unsafe.As<T, int>(ref interactions[i]);
+                    var value = UnsafeUtility.As<T, int>(ref interactions[i]);
                     var buffer = owner.Memory;
                     MemoryMarshal.Write(buffer.Span, ref value);
                     var cmdInfo = ParseCommand(buffer);
@@ -236,7 +257,7 @@ namespace MychIO.Device
                             {
                                 foreach (var _bytes in ArrayHelper.ToEnumerable(bytes))
                                 {
-                                    await _connection.Write(_bytes);
+                                    await _connection.WriteAsync(_bytes);
                                 }
                             }
                             else
@@ -248,20 +269,23 @@ namespace MychIO.Device
                 }
             }
         }
-
-        // source: https://stackoverflow.com/a/48599119
-        private static bool ByteArraysEqual(ReadOnlySpan<byte> a1, ReadOnlySpan<byte> a2)
-        {
-            return a1.SequenceEqual(a2);
-        }
-
         // Not used
+        public override void ReadDataWithDebounce(IntPtr intPtr)
+        {
+            ThrowHelper.NotSupported();
+        }
+        public override void ReadDataWithDebounce(ReadOnlySpan<byte> data)
+        {
+            ThrowHelper.NotSupported();
+        }
         public override void ReadData(IntPtr intPtr)
         {
-            throw new NotImplementedException();
+            ThrowHelper.NotSupported();
         }
-        public override void ReadDataDebounce(IntPtr intPtr) { }
-
+        public override void ReadData(ReadOnlySpan<byte> data)
+        {
+            ThrowHelper.NotSupported();
+        }
         readonly struct LedCommandInfo
         {
             /// <summary>

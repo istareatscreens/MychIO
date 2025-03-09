@@ -10,13 +10,28 @@ namespace MychIO.Connection
     // WARNING! Member variables must be directly accessible (no {get; set;}) or it will break serialization/unserialization
     public abstract class ConnectionProperties : IConnectionProperties
     {
-        public int DebounceTimeMs;
         public string Id { get; private set; }
+        public IEnumerable<string> Errors
+        {
+            get
+            {
+                while (0 < _errors.Count)
+                {
+                    yield return _errors.Dequeue();
+                }
+            }
+        }
+        public IDictionary<string, dynamic> Properties
+        {
+            get => _properties;
+        }
+        public abstract ConnectionType ConnectionType { get; }
+
         private Queue<string> _errors = new();
         private IDictionary<string, dynamic> _properties = new Dictionary<string, dynamic>();
-        public IDictionary<string, dynamic> GetProperties() => _properties;
 
-        // Modify the constructor to accept DebounceTimeMs
+        public int DebounceTimeMs = 0;
+
         public ConnectionProperties(int debounceTimeMs = 0)
         {
             DebounceTimeMs = debounceTimeMs;
@@ -29,7 +44,6 @@ namespace MychIO.Connection
             Id = _properties.TryGetValue("Id", out var id) && id is string v ? v : Guid.NewGuid().ToString();
             return this;
         }
-
         protected static IDictionary<string, dynamic> MergeProperties(
             IDictionary<string, dynamic> overWrittenProperties, IDictionary<string, dynamic> updateProperties)
         {
@@ -40,7 +54,6 @@ namespace MychIO.Connection
             }
             return result;
         }
-
         protected void PopulatePropertiesFromFields()
         {
             var fields = GetType().GetFields(BindingFlags.Public | BindingFlags.Instance | BindingFlags.FlattenHierarchy);
@@ -61,7 +74,6 @@ namespace MychIO.Connection
                 }
             }
         }
-
         protected void UpdateFieldsFromProperties()
         {
             var fields = GetType().GetFields(BindingFlags.Public | BindingFlags.Instance);
@@ -81,20 +93,9 @@ namespace MychIO.Connection
                 }
             }
         }
-
-        public IEnumerable<string> GetErrors()
-        {
-            while (0 < _errors.Count)
-            {
-                yield return _errors.Dequeue();
-            }
-        }
-        public TimeSpan GetDebounceTime()
+        public TimeSpan GetDebounceThreshold()
         {
             return TimeSpan.FromMilliseconds(DebounceTimeMs);
         }
-
-        public abstract ConnectionType GetConnectionType();
-
     }
 }

@@ -4,20 +4,42 @@ using System.Diagnostics;
 using System.Runtime.CompilerServices;
 using System.Threading.Tasks;
 using MychIO.Connection;
+using MychIO.Helper;
 
 namespace MychIO.Device
 {
     // Important class cannot have more than 1 constructor (see Device Factory)
-    public abstract partial class Device<T1, T2, T3> : IDevice<T1, T2> 
-        where T1 : Enum 
-        where T3 : IConnectionProperties 
-        where T2 : Enum
+    public abstract partial class Device<TZone, TState, TConnProps> : IDevice<TZone, TState> 
+        where TZone : Enum
+        where TState : Enum
+        where TConnProps : IConnectionProperties 
     {
-        // Debounce Properties
-        protected readonly Dictionary<T1, long> _lastInputTriggerTimes;
-        protected TimeSpan _debounceTime;
-        private static readonly Stopwatch _stopwatch = Stopwatch.StartNew();
-
+        public abstract string Name { get; }
+        public abstract bool CanRead { get; }
+        public abstract bool CanWrite { get; }
+        public bool IsReading
+        {
+            get => _connection.IsReading;
+        }
+        
+        public virtual bool IsConnected
+        {
+            get => ThrowHelper.NotImplemented<bool>("Should be implemented by base class");
+        }
+        public IConnection Connection
+        {
+            get => _connection;
+        }
+        public DeviceClassification Classification
+        {
+            get => _classification;
+        }
+        public IConnectionProperties ConnectionProperties
+        {
+            get => _connectionProperties;
+        }
+        protected delegate bool DebounceCallbackHandler<TParam1, TParam2>(TParam1 param1, TParam2 param2);
+        protected delegate bool DebounceCallbackHandler<TParam1, TParam2, TParam3>(TParam1 param1, TParam2 param2, TParam3 param3);
         protected const byte MOST_SIGNIFICANT_BIT = 0b10000000;
         protected const byte LEAST_SIGNIFICANT_BIT = 0b00000001;
         private string _id;
@@ -26,10 +48,12 @@ namespace MychIO.Device
             get => _id;
             set => _id = value;
         }
-
+        readonly Dictionary<TZone, TimeSpan> _lastInputTriggerTimes = new();
+        readonly TimeSpan _debounceThreshold = TimeSpan.Zero;
+        readonly Stopwatch _timeProvider = new Stopwatch();
         protected readonly IOManager _manager;
         protected readonly IConnectionProperties _connectionProperties;
-        protected IDictionary<T1, Action<T1, T2>> _inputSubscriptions;
+        protected IDictionary<TZone, Action<TZone, TState>> _inputSubscriptions;
         protected IConnection _connection;
         protected DeviceClassification _classification;
 
@@ -43,7 +67,7 @@ namespace MychIO.Device
             var defaultProperties = (IConnectionProperties)GetBaseClassStaticMethod("GetDefaultConnectionProperties", GetType()).Invoke(null, null);
             _classification = (DeviceClassification)GetBaseClassStaticMethod("GetDeviceClassification", GetType()).Invoke(null, null);
 
-            if (0 == defaultProperties.GetProperties().Count)
+            if (0 == defaultProperties.Properties.Count)
             {
                 manager.handleEvent(
                     Event.IOEventType.InvalidDevicePropertyError,
@@ -58,17 +82,15 @@ namespace MychIO.Device
                 defaultProperties;
 
             // send errors that occured when applying properties
-            foreach (var error in _connectionProperties.GetErrors())
+            foreach (var error in _connectionProperties.Errors)
             {
                 manager.handleEvent(Event.IOEventType.InvalidDevicePropertyError, _classification, error);
             }
 
-            // Setup Debounce
-            _debounceTime = _connectionProperties.GetDebounceTime();
-            _lastInputTriggerTimes = new Dictionary<T1, long>();
-            foreach (T1 zone in Enum.GetValues(typeof(T1)))
+            _debounceThreshold = _connectionProperties.GetDebounceThreshold();
+            foreach(TZone zone in Enum.GetValues(typeof(TZone)))
             {
-                _lastInputTriggerTimes[zone] = 0; // Initialize with 0 milliseconds
+                _lastInputTriggerTimes[zone] = TimeSpan.Zero;
             }
 
             // Connect
@@ -81,74 +103,78 @@ namespace MychIO.Device
         {
             Task.Run(() =>
             {
-                _connection.Disconnect();
+                _connection.DisconnectAsync();
             });
         }
-
-        public IConnectionProperties GetConnectionProperties() => _connectionProperties;
-
-        public void SetInputCallbacks(IDictionary<T1, Action<T1, T2>> inputSubscriptions)
-        {
-            _inputSubscriptions = inputSubscriptions;
-        }
-
-        public void AddInputCallback(T1 interactionZone, Action<T1, T2> callback)
+        public void AddInputCallback(TZone interactionZone, Action<TZone, TState> callback)
         {
             _inputSubscriptions[interactionZone] = callback;
         }
-
-        public async Task<IDevice> Connect()
+        public IDevice Connect()
         {
-            await _connection.Connect();
+            var task = ConnectAsync();
+            task.Wait();
+            _timeProvider.Restart();
+            return task.Result;
+        }
+        public async Task<IDevice> ConnectAsync()
+        {
+            await _connection.ConnectAsync();
             return (IDevice)this;
         }
-        public async Task Disconnect()
+        public void Disconnect()
         {
-            await _connection.Disconnect();
+            DisconnectAsync().Wait();
         }
-
-        public bool IsConnected()
+        public async Task DisconnectAsync()
         {
-            throw new NotImplementedException("Should be implemented by base class");
+            await _connection.DisconnectAsync();
         }
-
-        public IConnection GetConnection()
-        {
-            return _connection;
-        }
-
-        public DeviceClassification GetClassification()
-        {
-            return _classification;
-        }
-
         public bool CanConnect(IDevice device)
         {
-            return _connection.CanConnect(device.GetConnection());
+            return _connection.CanConnect(device.Connection);
         }
         public abstract void ResetState();
 
-        public abstract Task OnStartWrite();
-
-        public abstract Task OnDisconnectWrite();
-
-        Task IDevice<T1, T2>.SetInputCallbacks(IDictionary<T1, Action<T1, T2>> inputSubscriptions)
+        public virtual void OnConnected()
+        {
+            return;
+        }
+        public virtual Task OnConnectedAsync()
+        {
+            return Task.CompletedTask;
+        }
+        public virtual void OnDisconnected()
+        {
+            return;
+        }
+        public virtual Task OnDisconnectedAsync()
+        {
+            return Task.CompletedTask;
+        }
+        public virtual void Dispose()
+        {
+            _connection.Dispose();
+        }
+        public void SetInputCallbacks(IDictionary<TZone, Action<TZone, TState>> inputSubscriptions)
         {
             // To prevent side effects due to threading reading will be halted temporarily to load new callbacks
             StopReading();
             _inputSubscriptions = inputSubscriptions;
             StartReading();
+        }
+        public Task SetInputCallbacksAsync(IDictionary<TZone, Action<TZone, TState>> inputSubscriptions)
+        {
+            SetInputCallbacks(inputSubscriptions);
             return Task.CompletedTask;
         }
 
-        public bool IsReading()
-        {
-            return _connection.IsReading();
-        }
+
+
 
         public void StopReading()
         {
-            if (IsReading())
+            if (IsReading)
             {
                 _connection.StopReading();
             }
@@ -156,63 +182,93 @@ namespace MychIO.Device
 
         public void StartReading()
         {
-            if (!IsReading())
+            if (!IsReading)
             {
                 _connection.Read();
             }
         }
-
+        public virtual void ReadData(ReadOnlyMemory<byte> data)
+        {
+            ReadData(data.Span);
+        }
         // Making these methods virtual introduces overhead so
         // just implement them in all devices objects
-        public abstract void ReadData(byte[] data);
+        public abstract void ReadData(ReadOnlySpan<byte> data);
         public abstract void ReadData(IntPtr data);
-        public abstract void ReadDataDebounce(byte[] data);
-        public abstract void ReadDataDebounce(IntPtr intPtr);
-
-        [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        protected void DebouncedHandleInputChange<T4>(T1 zone, Func<T4, bool> callback, T4 input)
+        public virtual void ReadDataWithDebounce(ReadOnlyMemory<byte> data)
         {
-            long now = _stopwatch.ElapsedMilliseconds;
-
-            var diff = now - _lastInputTriggerTimes[zone];
-            if (diff < _debounceTime.TotalMilliseconds)
-            {
-#if DEBUG
-                _manager.handleEvent(Event.IOEventType.Debug, 
-                                     _classification, 
-                                     $"[Debounce] Received device response\nInterval: {diff}ms");
-#endif
-                return;
-            }
-
-            // handle input and check if there has been a change
-            if (callback(input))
-            {
-                _lastInputTriggerTimes[zone] = now;
-#if DEBUG
-                _manager.handleEvent(Event.IOEventType.Debug,
-                                     _classification,
-                                     $"[Update] Received device response");
-#endif
-            }
+            ReadDataWithDebounce(data.Span);
         }
-
-        public abstract Task Write<T>(params T[] interactions) where T:Enum;
-
-        private static IDictionary<T1, Action<T1, T2>> CreateTypedDictionary(IDictionary<Enum, Action<Enum, Enum>> original)
+        public abstract void ReadDataWithDebounce(ReadOnlySpan<byte> data);
+        public abstract void ReadDataWithDebounce(IntPtr intPtr);
+        public abstract void Write<T>(params T[] interactions) where T : Enum;
+        public abstract Task WriteAsync<T>(params T[] interactions) where T : Enum;
+        // source: https://stackoverflow.com/a/48599119
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        protected static bool ByteArraysEqual<T>(ReadOnlySpan<T> a1, ReadOnlySpan<T> a2) where T : IEquatable<T>
         {
-            var typedDictionary = new Dictionary<T1, Action<T1, T2>>();
+            return a1.SequenceEqual(a2);
+        }
+        private static IDictionary<TZone, Action<TZone, TState>> CreateTypedDictionary(IDictionary<Enum, Action<Enum, Enum>> original)
+        {
+            var typedDictionary = new Dictionary<TZone, Action<TZone, TState>>();
             foreach (var kvp in original)
             {
-                T1 key = (T1)kvp.Key;
-                Action<T1, T2> value = (a1, a2) =>
+                TZone key = (TZone)kvp.Key;
+                Action<TZone, TState> value = (a1, a2) =>
                 {
-                    kvp.Value((T1)(object)a1, (T2)(object)a2);
+                    kvp.Value((TZone)(object)a1, (TState)(object)a2);
                 };
                 typedDictionary[key] = value;
             }
 
             return typedDictionary;
+        }
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        protected void DebounceHandle<TParam1, TParam2>(TZone zone,
+                                                        DebounceCallbackHandler<TParam1, TParam2> callback,
+                                                        TParam1 param1, 
+                                                        TParam2 param2)
+        {
+            var now = TimeSpan.FromTicks(_timeProvider.ElapsedTicks);
+            if (DebounceCore(zone, now))
+            {
+                return;
+            }
+            if (callback(param1, param2))
+            {
+                _lastInputTriggerTimes[zone] = now;
+            }
+        }
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        protected void DebounceHandle<TParam1, TParam2, TParam3>(TZone zone,
+                                                                 DebounceCallbackHandler<TParam1, TParam2, TParam3> callback,
+                                                                 TParam1 param1,
+                                                                 TParam2 param2, 
+                                                                 TParam3 param3)
+        {
+            var now = TimeSpan.FromTicks(_timeProvider.ElapsedTicks);
+            if (DebounceCore(zone, now))
+            {
+                return;
+            }
+            if (callback(param1, param2, param3))
+            {
+                _lastInputTriggerTimes[zone] = now;
+            }
+        }
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        /// <summary>
+        /// If it is within the debounce threshold, return true, otherwise return false
+        /// </summary>
+        /// <param name="zone"></param>
+        /// <returns></returns>
+        bool DebounceCore(TZone zone, TimeSpan now)
+        {
+            var lastTriggerTime = _lastInputTriggerTimes[zone];
+            var diff = now - lastTriggerTime;
+
+            return diff < _debounceThreshold;
         }
     }
 }

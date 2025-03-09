@@ -51,7 +51,7 @@ namespace MychIO.Device
                 manager.handleEvent(IOEventType.ConnectionError, message: $"Duplicate connection for {device.GetType().Name} already exists cannot connect");
             }
 
-            return await device.Connect();
+            return await device.ConnectAsync();
         }
 
         public static DeviceClassification GetClassificationFromDeviceName(string deviceName)

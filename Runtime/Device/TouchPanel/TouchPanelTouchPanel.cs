@@ -4,12 +4,24 @@ using System.Runtime.CompilerServices;
 using System.Threading.Tasks;
 using MychIO.Connection;
 using MychIO.Connection.TouchPanelDevice;
+using MychIO.Helper;
 
 namespace MychIO.Device.TouchPanel
 {
     public class TouchPanelTouchPanel : Device<TouchPanelZone, InputState, TouchPanelDeviceProperties>
     {
-
+        public override string Name
+        {
+            get => DEVICE_NAME;
+        }
+        public override bool CanRead
+        {
+            get => true;
+        }
+        public override bool CanWrite
+        {
+            get => true;
+        }
         public const string DEVICE_NAME = "TouchPanel";
 
         private const int MAX_TOUCH_POINTS = 10;
@@ -22,7 +34,6 @@ namespace MychIO.Device.TouchPanel
         public static new ConnectionType GetConnectionType() => ConnectionType.TouchPanelDevice;
         public static new DeviceClassification GetDeviceClassification() => DeviceClassification.TouchPanel;
         public static new string GetDeviceName() => DEVICE_NAME;
-        public override string DeviceName() => DEVICE_NAME;
         public static new IConnectionProperties GetDefaultConnectionProperties() => new TouchPanelDeviceProperties(
             pollingRateMs: 2
         );
@@ -51,27 +62,6 @@ namespace MychIO.Device.TouchPanel
         {
             _currentState = NO_INPUT_PACKET;
         }
-
-        public unsafe override void ReadDataDebounce(IntPtr pointer)
-        {
-            if (pointer == IntPtr.Zero)
-            {
-                return;
-            }
-            byte[] rawInput = new byte[MAX_TOUCH_POINTS * DATA_POINTS * SHORT_SIZE];
-            byte* pByte = (byte*)pointer;
-            for (int i = 0; i < MAX_TOUCH_POINTS * DATA_POINTS; i++)
-            {
-                rawInput[i] = *(pByte + i);
-            }
-
-            short[] currentInput = new short[MAX_TOUCH_POINTS * DATA_POINTS];
-            Buffer.BlockCopy(rawInput, 0, currentInput, 0, currentInput.Length);
-
-            // TODO: Implement
-
-        }
-
         public unsafe override void ReadData(IntPtr pointer)
         {
 
@@ -93,7 +83,33 @@ namespace MychIO.Device.TouchPanel
             // UnityEngine.Debug.Log(GetTouchEventsString(currentInput));
 
         }
+        public override void ReadData(ReadOnlySpan<byte> data) 
+        {
+            
+        }
+        public unsafe override void ReadDataWithDebounce(IntPtr pointer)
+        {
+            if (pointer == IntPtr.Zero)
+            {
+                return;
+            }
+            byte[] rawInput = new byte[MAX_TOUCH_POINTS * DATA_POINTS * SHORT_SIZE];
+            byte* pByte = (byte*)pointer;
+            for (int i = 0; i < MAX_TOUCH_POINTS * DATA_POINTS; i++)
+            {
+                rawInput[i] = *(pByte + i);
+            }
 
+            short[] currentInput = new short[MAX_TOUCH_POINTS * DATA_POINTS];
+            Buffer.BlockCopy(rawInput, 0, currentInput, 0, currentInput.Length);
+
+            // TODO: Implement
+            // UnityEngine.Debug.Log(GetTouchEventsString(currentInput));
+        }
+        public override void ReadDataWithDebounce(ReadOnlySpan<byte> data)
+        {
+
+        }
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         private void handleInputChange(TouchPanelZone zone, Tuple<short, short> coordinates, short state)
         {
@@ -133,17 +149,28 @@ namespace MychIO.Device.TouchPanel
 #endif
 
         // Not used
-        public override Task Write<T>(params T[] interactions)
+        public override void Write<T>(params T[] interactions)
+        {
+            ThrowHelper.NotSupported();
+        }
+
+        public override Task WriteAsync<T>(params T[] interactions)
+        {
+            return ThrowHelper.NotSupported<Task>();
+        }
+        public override void OnConnected()
+        {
+            return;
+        }
+        public override Task OnConnectedAsync()
         {
             return Task.CompletedTask;
         }
-        public override Task OnStartWrite()
+        public override void OnDisconnected()
         {
-            return Task.CompletedTask;
+            return;
         }
-        public override void ReadData(byte[] data) { }
-        public override void ReadDataDebounce(byte[] data) { }
-        public override Task OnDisconnectWrite()
+        public override Task OnDisconnectedAsync()
         {
             return Task.CompletedTask;
         }

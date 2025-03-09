@@ -2,11 +2,13 @@ namespace MychIO.Connection.SerialDevice
 {
     public class SerialDeviceProperties : ConnectionProperties
     {
+        public const int DEFAULT_READ_TIMEOUT_MS = 3000;
         public const int DEFAULT_WRITE_TIMEOUT_MS = 100;
         // WARNING: Adding {get; set;} will break serialization/unserialization of properties!
         public string ComPortNumber;
         public int PollTimeoutMs;
         public int BufferByteLength;
+        public int ReadTimeoutMS;
         public int WriteTimeoutMS;
         public int PortNumber;
         public BaudRate BaudRate;
@@ -22,6 +24,7 @@ namespace MychIO.Connection.SerialDevice
             string comPortNumber = "COM21",
             int pollingRateMs = 2,
             int bufferByteLength = 9,
+            int readTimeoutMS = DEFAULT_READ_TIMEOUT_MS,
             int writeTimeoutMS = DEFAULT_WRITE_TIMEOUT_MS,
             int portNumber = 0,
             BaudRate baudRate = BaudRate.Bd9600,
@@ -31,13 +34,13 @@ namespace MychIO.Connection.SerialDevice
             Handshake handshake = Handshake.None,
             bool dtr = false,
             bool rts = false,
-            // Device Class specific properties
             int? debounceTimeMs = 0
         ) : base(debounceTimeMs ?? 0)
         {
             ComPortNumber = comPortNumber;
             PollTimeoutMs = pollingRateMs;
             BufferByteLength = bufferByteLength;
+            ReadTimeoutMS = readTimeoutMS;
             WriteTimeoutMS = writeTimeoutMS;
             PortNumber = portNumber;
             BaudRate = baudRate;
@@ -56,6 +59,7 @@ namespace MychIO.Connection.SerialDevice
             string comPortNumber = null,
             int? pollingRateMs = null,
             int? bufferByteLength = null,
+            int? readTimeoutMS = null,
             int? writeTimeoutMS = null,
             int? portNumber = null,
             BaudRate? baudRate = null,
@@ -65,13 +69,13 @@ namespace MychIO.Connection.SerialDevice
             Handshake? handshake = null,
             bool? dtr = null,
             bool? rts = null,
-            // Device Class specific properties
             int? debounceTimeMs = 0
-        ) : base(debounceTimeMs ?? existing.DebounceTimeMs)
+        ) : base(debounceTimeMs ?? existing.DebounceTimeMs) 
         {
             ComPortNumber = comPortNumber ?? existing.ComPortNumber;
             PollTimeoutMs = pollingRateMs ?? existing.PollTimeoutMs;
             BufferByteLength = bufferByteLength ?? existing.BufferByteLength;
+            ReadTimeoutMS = readTimeoutMS ?? existing.ReadTimeoutMS;
             WriteTimeoutMS = writeTimeoutMS ?? existing.WriteTimeoutMS;
             PortNumber = portNumber ?? existing.PortNumber;
             BaudRate = baudRate ?? existing.BaudRate;
@@ -84,6 +88,9 @@ namespace MychIO.Connection.SerialDevice
             PopulatePropertiesFromFields();
         }
 
-        public override ConnectionType GetConnectionType() => ConnectionType.SerialDevice;
+        public override ConnectionType ConnectionType
+        {
+            get => ConnectionType.SerialDevice;
+        }
     }
 }

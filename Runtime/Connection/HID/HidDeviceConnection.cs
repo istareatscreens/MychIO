@@ -3,12 +3,23 @@ using System.Runtime.InteropServices;
 using System.Threading.Tasks;
 using MychIO.Device;
 using MychIO.Event;
+using MychIO.Helper;
 
 namespace MychIO.Connection.HidDevice
 {
     public class HidDeviceConnection : Connection
     {
-
+        public override bool IsReading
+        {
+            get => UnityHidApiPlugin.IsReading(_pluginHandle);
+        }
+        /// <summary>
+        /// Is Connected means its reading currently
+        /// </summary>
+        public override bool IsConnected
+        {
+            get => UnityHidApiPlugin.IsConnected(_pluginHandle);
+        }
         // Hold callbacks to prevent garbage collection
         private GCHandle _dataCallbackHandle;
         private GCHandle _eventCallbackHandle;
@@ -26,7 +37,7 @@ namespace MychIO.Connection.HidDevice
             {
                 manager.handleEvent(
                     IOEventType.ConnectionError,
-                        _device.GetClassification(),
+                        _device.Classification,
                         "Error loading UnityHidApiPlugin plugin"
                 );
             }
@@ -34,7 +45,7 @@ namespace MychIO.Connection.HidDevice
             // UnityHidApiPlugin.DisposeByClassification((int)device.GetClassification());
             HidDeviceProperties properties = (HidDeviceProperties)connectionProperties;
             _pluginHandle = UnityHidApiPlugin.Initialize(
-                (int)device.GetClassification(),
+                (int)device.Classification,
                 properties.VendorId,
                 properties.ProductId,
                 properties.BufferSize,
@@ -46,7 +57,7 @@ namespace MychIO.Connection.HidDevice
             {
                 manager.handleEvent(
                     IOEventType.ConnectionError,
-                    _device.GetClassification(),
+                    _device.Classification,
                     "Error Initializing HID Connection plugin, please recreate this device"
                 );
 
@@ -56,7 +67,7 @@ namespace MychIO.Connection.HidDevice
             }
         }
 
-        private void OnDestroy()
+        public override void Dispose()
         {
 
             if (_dataCallbackHandle.IsAllocated)
@@ -73,7 +84,7 @@ namespace MychIO.Connection.HidDevice
             }
             try
             {
-                _device?.OnDisconnectWrite();
+                _device?.OnDisconnected();
             }
             catch { }
         }
@@ -93,10 +104,14 @@ namespace MychIO.Connection.HidDevice
             );
         }
 
-        public override Task Connect()
+        public override void Connect()
+        {
+            ConnectAsync().Wait();
+        }
+        public override Task ConnectAsync()
         {
 
-            if (IsConnected())
+            if (IsConnected)
             {
                 // TODO: Set event here
                 return Task.CompletedTask;
@@ -105,13 +120,13 @@ namespace MychIO.Connection.HidDevice
             var eventReceivedCallback = new UnityHidApiPlugin.EventCallbackDelegate(
                 (string message) =>
                 {
-                    _manager.handleEvent(IOEventType.HidDeviceReadError, _device.GetClassification(), _device.GetType().ToString() + " Error: " + message);
+                    _manager.handleEvent(IOEventType.HidDeviceReadError, _device.Classification, _device.GetType().ToString() + " Error: " + message);
                 }
             );
 
             if (!UnityHidApiPlugin.Connect(_pluginHandle, eventReceivedCallback))
             {
-                _manager.handleEvent(IOEventType.ConnectionError, _device.GetClassification(), _device.GetType().ToString() + " Failed to Connect");
+                _manager.handleEvent(IOEventType.ConnectionError, _device.Classification, _device.GetType().ToString() + " Failed to Connect");
             }
 
             var dataReceivedCallback = GetRecieveDataFunction();
@@ -121,7 +136,10 @@ namespace MychIO.Connection.HidDevice
             _eventCallbackHandle = GCHandle.Alloc(eventReceivedCallback);
             Read();
 
-            _manager.handleEvent(IOEventType.Attach, _device.GetClassification(), _device.GetType().ToString() + " Device is running properly");
+            if(IsReading)
+            {
+                _manager.handleEvent(IOEventType.Attach, _device.Classification, _device.GetType().ToString() + " Device is running properly");
+            }
 
             return Task.CompletedTask;
 
@@ -129,40 +147,31 @@ namespace MychIO.Connection.HidDevice
 
         private UnityHidApiPlugin.DataCallbackDelegate GetRecieveDataFunction()
         {
-            return _connectionProperties.GetDebounceTime() > TimeSpan.FromMilliseconds(0) ?
-                         new UnityHidApiPlugin.DataCallbackDelegate(_device.ReadDataDebounce) :
-                         new UnityHidApiPlugin.DataCallbackDelegate(_device.ReadData);
-        }
-
-        public override async Task Disconnect()
-        {
-            if (IsConnected())
+            var dt = _connectionProperties.GetDebounceThreshold();
+            if(dt.TotalMilliseconds > 0)
             {
-                await _device.OnDisconnectWrite();
+                return new UnityHidApiPlugin.DataCallbackDelegate(_device.ReadDataWithDebounce);
+            }
+            else
+            {
+                return new UnityHidApiPlugin.DataCallbackDelegate(_device.ReadData);
+            }
+        }
+        public override void Disconnect()
+        {
+            DisconnectAsync().Wait();
+        }
+        public override async Task DisconnectAsync()
+        {
+            if (IsConnected)
+            {
+                await _device.OnDisconnectedAsync();
             }
             UnityHidApiPlugin.Disconnect(_pluginHandle);
         }
-
-        // Is Connected means its reading currently
-        public override bool IsConnected()
-        {
-            return UnityHidApiPlugin.IsConnected(_pluginHandle);
-        }
-
-        // currently no need to write to HID devices so not implemented
-        public override Task Write(byte[] bytes)
-        {
-            return Task.CompletedTask;
-        }
-
-        public override bool IsReading()
-        {
-            return UnityHidApiPlugin.IsReading(_pluginHandle);
-        }
-
         public override void Read()
         {
-            if (!IsReading() && _pluginHandle != null && _pluginHandle != IntPtr.Zero)
+            if (!IsReading && _pluginHandle != null && _pluginHandle != IntPtr.Zero)
             {
                 var dataCallback = (UnityHidApiPlugin.DataCallbackDelegate)_dataCallbackHandle.Target;
                 var eventCallback = (UnityHidApiPlugin.EventCallbackDelegate)_eventCallbackHandle.Target;
@@ -171,16 +180,28 @@ namespace MychIO.Connection.HidDevice
 
             if (!UnityHidApiPlugin.IsReading(_pluginHandle))
             {
-                _manager.handleEvent(IOEventType.ConnectionError, _device.GetClassification(), _device.GetType().ToString() + " Error: failed to start reading from device");
+                _manager.handleEvent(IOEventType.ConnectionError, _device.Classification, _device.GetType().ToString() + " Error: failed to start reading from device");
             }
         }
-
         public override void StopReading()
         {
-            if (IsReading())
+            if (IsReading)
             {
                 UnityHidApiPlugin.StopReading(_pluginHandle);
             }
+        }
+        public override void Write(ReadOnlySpan<byte> data)
+        {
+            ThrowHelper.NotSupported();
+        }
+        public override Task WriteAsync(ReadOnlyMemory<byte> data)
+        {
+            return ThrowHelper.NotSupported<Task>();
+        }
+        // currently no need to write to HID devices so not implemented
+        public override Task WriteAsync(byte[] bytes)
+        {
+            return ThrowHelper.NotSupported<Task>();
         }
     }
 }
