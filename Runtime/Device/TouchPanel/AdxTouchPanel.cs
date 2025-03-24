@@ -1,8 +1,10 @@
 using System;
 using System.Collections.Generic;
+using System.Drawing;
 using System.Linq;
 using System.Runtime.CompilerServices;
 using System.Text;
+using System.Threading;
 using System.Threading.Tasks;
 using MychIO.Connection;
 using MychIO.Connection.SerialDevice;
@@ -10,7 +12,7 @@ using MychIO.Helper;
 
 namespace MychIO.Device
 {
-    public class AdxTouchPanel : Device<TouchPanelZone, InputState, SerialDeviceProperties>
+    public class AdxTouchPanel : Device<TouchPanelZone, InputState, AdxTouchPanelProperties>
     {
 
         /**
@@ -63,7 +65,7 @@ namespace MychIO.Device
         public static new DeviceClassification GetDeviceClassification() => DeviceClassification.TouchPanel;
         public static new string GetDeviceName() => DEVICE_NAME;
         public override string DeviceName() => DEVICE_NAME;
-        public static new IConnectionProperties GetDefaultConnectionProperties() => new SerialDeviceProperties(
+        public static new IConnectionProperties GetDefaultConnectionProperties() => new AdxTouchPanelProperties(
             comPortNumber: "COM3",
             writeTimeoutMS: SerialDeviceProperties.DEFAULT_WRITE_TIMEOUT_MS,
             bufferByteLength: 9,
@@ -77,7 +79,7 @@ namespace MychIO.Device
             dtr: false,
             rts: false
         );
-        public new static SerialDeviceProperties GetDefaultDeviceProperties() => (SerialDeviceProperties)GetDefaultConnectionProperties();
+        public new static AdxTouchPanelProperties GetDefaultDeviceProperties() => (AdxTouchPanelProperties)GetDefaultConnectionProperties();
 
         // ** Connection Properties 
 
@@ -121,7 +123,27 @@ namespace MychIO.Device
             {
                 await _connection.Write(Encoding.UTF8.GetBytes("{L" + (char)a + "r2}"));
             }
-
+            dynamic sens = 0;
+            var connProperties = _connectionProperties.GetProperties();
+            var sensitivityOverride = connProperties.TryGetValue("SensitivityOverride", out var _sensitivityOverride) &&
+                                      connProperties.TryGetValue("Sensitivity", out sens) && _sensitivityOverride;
+            if (sensitivityOverride)
+            {
+                try
+                {
+                    for (byte a = 0x41; a <= 0x62; a++)
+                    {
+                        var value = GetSensitivityValue(a, sens);
+                        await _connection.Write(Encoding.UTF8.GetBytes($"{{{"L"}{(char)a}k{(char)value}}}"));
+                    }
+                }
+                catch(Exception e)
+                {
+                    _manager.handleEvent(Event.IOEventType.Debug, 
+                                         DeviceClassification.TouchPanel, 
+                                         $"An error occurred while setting sensitivity:\n{e}");
+                }
+            }
             await Write(TouchPanelCommand.Start);
         }
 
@@ -390,7 +412,45 @@ namespace MychIO.Device
         {
             return Task.CompletedTask;
         }
-
+        byte GetSensitivityValue(byte sensor, int sens)
+        {
+            if (sensor > 0x62 || sensor < 0x41)
+                return 0x28;
+            if (sensor < 0x49)
+            {
+                return sens switch
+                {
+                    -5 => 0x5A,
+                    -4 => 0x50,
+                    -3 => 0x46,
+                    -2 => 0x3C,
+                    -1 => 0x32,
+                    1 => 0x1E,
+                    2 => 0x1A,
+                    3 => 0x17,
+                    4 => 0x14,
+                    5 => 0x0A,
+                    _ => 0x28
+                };
+            }
+            else
+            {
+                return sens switch
+                {
+                    -5 => 0x46,
+                    -4 => 0x3C,
+                    -3 => 0x32,
+                    -2 => 0x28,
+                    -1 => 0x1E,
+                    1 => 0x14,
+                    2 => 0x0F,
+                    3 => 0x0A,
+                    4 => 0x05,
+                    5 => 0x01,
+                    _ => 0x01
+                };
+            }
+        }
 #if UNITY_EDITOR
         public static string formatAdxTouchPanelOutput(byte[] data)
         {
