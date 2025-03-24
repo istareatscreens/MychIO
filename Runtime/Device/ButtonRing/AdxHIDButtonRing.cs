@@ -140,18 +140,13 @@ namespace MychIO.Device
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         private bool HandleInputChangeInternal(ButtonRingZone zone, byte input)
         {
-            var currentActiveState =  _currentActiveStates[zone];
-            if ((LEAST_SIGNIFICANT_BIT == input) != currentActiveState)
-            {
-                _inputSubscriptions[zone]
-                (
-                    zone, 
-                    currentActiveState ? InputState.Off : InputState.On
-                );
-                _currentActiveStates[zone] = !currentActiveState;
-                return true;
-            }
-            return false;
+            var currentState =  _currentActiveStates[zone];
+            var newState = LEAST_SIGNIFICANT_BIT == input;
+            var callback = _inputSubscriptions[zone];
+            callback(zone,
+                     newState ? InputState.Off : InputState.On);
+            _currentActiveStates[zone] = newState;
+            return newState != currentState;
         }
 
         // source: https://stackoverflow.com/a/48599119
@@ -169,22 +164,6 @@ namespace MychIO.Device
         public override Task WriteAsync<T>(params T[] interactions)
         {
             return ThrowHelper.NotSupported<Task>();
-        }
-        public override void OnConnected()
-        {
-            return;
-        }
-        public override Task OnConnectedAsync()
-        {
-            return Task.CompletedTask;
-        }
-        public override void OnDisconnected()
-        {
-            return;
-        }
-        public override Task OnDisconnectedAsync()
-        {
-            return Task.CompletedTask;
         }
     }
 }

@@ -136,15 +136,15 @@ namespace MychIO.Device
             if (_currentState[3] != data[3])
             {
                 var InvertedByte3 = (byte)~data[3];
-                handleInputChange(ButtonRingZone.BA3, InvertedByte3, LEAST_SIGNIFICANT_BIT);
+                HandleInputChangeInternal(ButtonRingZone.BA3, InvertedByte3, LEAST_SIGNIFICANT_BIT);
 
-                handleInputChange(ButtonRingZone.ArrowUp, data[3], 0b00000010);
+                HandleInputChangeInternal(ButtonRingZone.ArrowUp, data[3], 0b00000010);
 
-                handleInputChange(ButtonRingZone.BA1, InvertedByte3, 0b00000100);
+                HandleInputChangeInternal(ButtonRingZone.BA1, InvertedByte3, 0b00000100);
 
-                handleInputChange(ButtonRingZone.BA2, InvertedByte3, 0b00001000);
+                HandleInputChangeInternal(ButtonRingZone.BA2, InvertedByte3, 0b00001000);
 
-                handleInputChange(ButtonRingZone.ArrowDown, data[3], 0b01000000);
+                HandleInputChangeInternal(ButtonRingZone.ArrowDown, data[3], 0b01000000);
             }
 
             /*
@@ -160,23 +160,23 @@ namespace MychIO.Device
             {
                 var InvertedByte4 = (byte)~data[4];
 
-                handleInputChange(ButtonRingZone.BA4, InvertedByte4, MOST_SIGNIFICANT_BIT);
+                HandleInputChangeInternal(ButtonRingZone.BA4, InvertedByte4, MOST_SIGNIFICANT_BIT);
 
-                handleInputChange(ButtonRingZone.BA5, InvertedByte4, 0b01000000);
+                HandleInputChangeInternal(ButtonRingZone.BA5, InvertedByte4, 0b01000000);
 
-                handleInputChange(ButtonRingZone.BA6, InvertedByte4, 0b00100000);
+                HandleInputChangeInternal(ButtonRingZone.BA6, InvertedByte4, 0b00100000);
 
-                handleInputChange(ButtonRingZone.BA7, InvertedByte4, 0b00010000);
+                HandleInputChangeInternal(ButtonRingZone.BA7, InvertedByte4, 0b00010000);
 
-                handleInputChange(ButtonRingZone.BA8, InvertedByte4, 0b00001000);
+                HandleInputChangeInternal(ButtonRingZone.BA8, InvertedByte4, 0b00001000);
 
-                handleInputChange(ButtonRingZone.Select, data[4], 0b00000010);
+                HandleInputChangeInternal(ButtonRingZone.Select, data[4], 0b00000010);
             }
 
             // coin -> byte 0 (00000001)
             if (_currentState[0] != data[0])
             {
-                handleInputChange(
+                HandleInputChangeInternal(
                     ButtonRingZone.InsertCoin,
                     data[0],
                     LEAST_SIGNIFICANT_BIT
@@ -187,20 +187,15 @@ namespace MychIO.Device
             //_currentState = currentInput;
         }
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        private bool handleInputChange(ButtonRingZone zone, byte input, byte mask)
+        private bool HandleInputChangeInternal(ButtonRingZone zone, byte input, byte mask)
         {
-            var currentActiveState = _currentActiveStates[zone];
-            if (((input & mask) != 0) != currentActiveState)
-            {
-                _inputSubscriptions[zone]
-                (
-                    zone,
-                    currentActiveState ? InputState.Off : InputState.On
-                );
-                _currentActiveStates[zone] = !currentActiveState;
-                return true;
-            }
-            return false;
+            var currentState = _currentActiveStates[zone];
+            var newState = (input & mask) != 0;
+            var callback = _inputSubscriptions[zone];
+
+            callback(zone, newState ? InputState.On : InputState.Off);
+            _currentActiveStates[zone] = newState;
+            return newState != currentState;
         }
 
         // source: https://stackoverflow.com/a/48599119

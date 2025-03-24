@@ -126,10 +126,22 @@ namespace MychIO.Device
         }
         public abstract void ResetState();
 
-        public abstract void OnConnected();
-        public abstract Task OnConnectedAsync();
-        public abstract void OnDisconnected();
-        public abstract Task OnDisconnectedAsync();
+        public virtual void OnConnected()
+        {
+            return;
+        }
+        public virtual Task OnConnectedAsync()
+        {
+            return Task.CompletedTask;
+        }
+        public virtual void OnDisconnected()
+        {
+            return;
+        }
+        public virtual Task OnDisconnectedAsync()
+        {
+            return Task.CompletedTask;
+        }
 
         public void SetInputCallbacks(IDictionary<TZone, Action<TZone, TState>> inputSubscriptions)
         {

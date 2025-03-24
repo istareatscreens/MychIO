@@ -170,10 +170,7 @@ namespace MychIO.Device
             await WriteAsync(LedCommand.ClearAll);
         }
 
-        public override void ReadData(ReadOnlySpan<byte> data)
-        {
-            ThrowHelper.NotSupported();
-        }
+        
         public override void ResetState()
         {
             NO_INPUT_PACKET.CopyTo(_currentState);
@@ -271,15 +268,12 @@ namespace MychIO.Device
                 }
             }
         }
-
-        // source: https://stackoverflow.com/a/48599119
-        private static bool ByteArraysEqual(ReadOnlySpan<byte> a1, ReadOnlySpan<byte> a2)
-        {
-            return a1.SequenceEqual(a2);
-        }
-
         // Not used
         public override void ReadData(IntPtr intPtr)
+        {
+            ThrowHelper.NotSupported();
+        }
+        public override void ReadData(ReadOnlySpan<byte> data)
         {
             ThrowHelper.NotSupported();
         }
