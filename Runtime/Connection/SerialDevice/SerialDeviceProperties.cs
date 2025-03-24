@@ -30,10 +30,8 @@ namespace MychIO.Connection.SerialDevice
             DataBits dataBits = DataBits.Eight,
             Handshake handshake = Handshake.None,
             bool dtr = false,
-            bool rts = false,
-            // Device Class specific properties
-            int? debounceTimeMs = 0
-        ) : base(debounceTimeMs ?? 0)
+            bool rts = false
+        )
         {
             ComPortNumber = comPortNumber;
             PollTimeoutMs = pollingRateMs;
@@ -64,10 +62,8 @@ namespace MychIO.Connection.SerialDevice
             DataBits? dataBits = null,
             Handshake? handshake = null,
             bool? dtr = null,
-            bool? rts = null,
-            // Device Class specific properties
-            int? debounceTimeMs = 0
-        ) : base(debounceTimeMs ?? existing.DebounceTimeMs)
+            bool? rts = null
+        )
         {
             ComPortNumber = comPortNumber ?? existing.ComPortNumber;
             PollTimeoutMs = pollingRateMs ?? existing.PollTimeoutMs;

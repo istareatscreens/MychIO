@@ -153,8 +153,6 @@ namespace MychIO.Device
         }
 
         public override void ReadData(byte[] data) { }
-        public override void ReadDataDebounce(byte[] data) { }
-
         public override void ResetState()
         {
             _currentState = NO_INPUT_PACKET;
@@ -260,8 +258,6 @@ namespace MychIO.Device
         {
             throw new NotImplementedException();
         }
-        public override void ReadDataDebounce(IntPtr intPtr) { }
-
         readonly struct LedCommandInfo
         {
             /// <summary>

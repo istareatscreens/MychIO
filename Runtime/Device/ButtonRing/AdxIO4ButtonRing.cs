@@ -82,72 +82,6 @@ namespace MychIO.Device
         }
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public unsafe override void ReadDataDebounce(IntPtr pointer)
-        {
-            if (pointer == IntPtr.Zero)
-            {
-                return;
-            }
-
-            Span<byte> currentInput = stackalloc byte[BYTES_TO_READ];
-            byte* pByte = (byte*)pointer;
-            for (int i = 0; i < BYTES_TO_READ; i++)
-            {
-                currentInput[i] = *(pByte + i);
-            }
-
-            if (ByteArraysEqual(_currentState, currentInput))
-            {
-                return;
-            }
-
-            bool HandleBA3(byte input) => handleInputChange(ButtonRingZone.BA3, input, LEAST_SIGNIFICANT_BIT);
-            bool HandleArrowUp(byte input) => handleInputChange(ButtonRingZone.ArrowUp, input, 0b00000010);
-            bool HandleBA1(byte input) => handleInputChange(ButtonRingZone.BA1, input, 0b00000100);
-            bool HandleBA2(byte input) => handleInputChange(ButtonRingZone.BA2, input, 0b00001000);
-            bool HandleArrowDown(byte input) => handleInputChange(ButtonRingZone.ArrowDown, input, 0b01000000);
-
-            bool HandleBA4(byte input) => handleInputChange(ButtonRingZone.BA4, input, MOST_SIGNIFICANT_BIT);
-            bool HandleBA5(byte input) => handleInputChange(ButtonRingZone.BA5, input, 0b01000000);
-            bool HandleBA6(byte input) => handleInputChange(ButtonRingZone.BA6, input, 0b00100000);
-            bool HandleBA7(byte input) => handleInputChange(ButtonRingZone.BA7, input, 0b00010000);
-            bool HandleBA8(byte input) => handleInputChange(ButtonRingZone.BA8, input, 0b00001000);
-            bool HandleSelect(byte input) => handleInputChange(ButtonRingZone.Select, input, 0b00000010);
-
-            bool HandleInsertCoin(byte input) => handleInputChange(ButtonRingZone.InsertCoin, input, LEAST_SIGNIFICANT_BIT);
-
-            if (_currentState[3] != currentInput[3])
-            {
-                var InvertedByte3 = (byte)~currentInput[3];
-
-                DebouncedHandleInputChange(ButtonRingZone.BA3, HandleBA3, InvertedByte3);
-                DebouncedHandleInputChange(ButtonRingZone.ArrowUp, HandleArrowUp, currentInput[3]);
-                DebouncedHandleInputChange(ButtonRingZone.BA1, HandleBA1, InvertedByte3);
-                DebouncedHandleInputChange(ButtonRingZone.BA2, HandleBA2, InvertedByte3);
-                DebouncedHandleInputChange(ButtonRingZone.ArrowDown, HandleArrowDown, currentInput[3]);
-            }
-
-            if (_currentState[4] != currentInput[4])
-            {
-                var InvertedByte4 = (byte)~currentInput[4];
-
-                DebouncedHandleInputChange(ButtonRingZone.BA4, HandleBA4, InvertedByte4);
-                DebouncedHandleInputChange(ButtonRingZone.BA5, HandleBA5, InvertedByte4);
-                DebouncedHandleInputChange(ButtonRingZone.BA6, HandleBA6, InvertedByte4);
-                DebouncedHandleInputChange(ButtonRingZone.BA7, HandleBA7, InvertedByte4);
-                DebouncedHandleInputChange(ButtonRingZone.BA8, HandleBA8, InvertedByte4);
-                DebouncedHandleInputChange(ButtonRingZone.Select, HandleSelect, currentInput[4]);
-            }
-
-            if (_currentState[0] != currentInput[0])
-            {
-                DebouncedHandleInputChange(ButtonRingZone.InsertCoin, HandleInsertCoin, currentInput[0]);
-            }
-
-            currentInput.CopyTo(_currentState);
-        }
-
-        [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public unsafe override void ReadData(IntPtr pointer)
         {
 
@@ -277,8 +211,6 @@ namespace MychIO.Device
             return Task.CompletedTask;
         }
         public override void ReadData(byte[] data) { }
-
-        public override void ReadDataDebounce(byte[] data) { }
 
         public override Task OnDisconnectWrite()
         {

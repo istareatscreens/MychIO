@@ -24,8 +24,6 @@ namespace MychIO.Connection.SerialDevice
             Handshake handshake = Handshake.None,
             bool dtr = false,
             bool rts = false,
-            // Device Class specific properties
-            int? debounceTimeMs = 0,
             bool sensitivityOverride = false,
             int sensitivity = 0
         ): base(comPortNumber,
@@ -39,8 +37,7 @@ namespace MychIO.Connection.SerialDevice
             dataBits, 
             handshake, 
             dtr,
-            rts,
-            debounceTimeMs)
+            rts)
         {
             SensitivityOverride = sensitivityOverride;
             Sensitivity = sensitivity;
@@ -61,8 +58,6 @@ namespace MychIO.Connection.SerialDevice
             Handshake? handshake = Handshake.None,
             bool? dtr = false,
             bool? rts = false,
-            // Device Class specific properties
-            int? debounceTimeMs = 0,
             bool? sensitivityOverride = false,
             int? sensitivity = 0
         ) : base(existing,
@@ -77,8 +72,7 @@ namespace MychIO.Connection.SerialDevice
             dataBits,
             handshake,
             dtr,
-            rts,
-            debounceTimeMs)
+            rts)
         {
             SensitivityOverride = sensitivityOverride ?? existing.SensitivityOverride;
             Sensitivity = sensitivity ?? existing.Sensitivity;

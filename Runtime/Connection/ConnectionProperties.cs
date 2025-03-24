@@ -10,17 +10,10 @@ namespace MychIO.Connection
     // WARNING! Member variables must be directly accessible (no {get; set;}) or it will break serialization/unserialization
     public abstract class ConnectionProperties : IConnectionProperties
     {
-        public int DebounceTimeMs;
         public string Id { get; private set; }
         private Queue<string> _errors = new();
         private IDictionary<string, dynamic> _properties = new Dictionary<string, dynamic>();
         public IDictionary<string, dynamic> GetProperties() => _properties;
-
-        // Modify the constructor to accept DebounceTimeMs
-        public ConnectionProperties(int debounceTimeMs = 0)
-        {
-            DebounceTimeMs = debounceTimeMs;
-        }
 
         public IConnectionProperties UpdateProperties(IDictionary<string, dynamic> updateProperties)
         {
@@ -88,10 +81,6 @@ namespace MychIO.Connection
             {
                 yield return _errors.Dequeue();
             }
-        }
-        public TimeSpan GetDebounceTime()
-        {
-            return TimeSpan.FromMilliseconds(DebounceTimeMs);
         }
 
         public abstract ConnectionType GetConnectionType();

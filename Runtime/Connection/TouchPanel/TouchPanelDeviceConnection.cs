@@ -114,9 +114,7 @@ namespace MychIO.Connection.TouchPanelDevice
 
         private UnityTouchPanelApiPlugin.DataCallbackDelegate GetRecieveDataFunction()
         {
-            return _connectionProperties.GetDebounceTime() > TimeSpan.FromMilliseconds(0) ?
-                         new UnityTouchPanelApiPlugin.DataCallbackDelegate(_device.ReadDataDebounce) :
-                         new UnityTouchPanelApiPlugin.DataCallbackDelegate(_device.ReadData);
+            return new UnityTouchPanelApiPlugin.DataCallbackDelegate(_device.ReadData);
         }
 
         public override async Task Disconnect()

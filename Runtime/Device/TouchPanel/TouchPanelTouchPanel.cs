@@ -51,27 +51,6 @@ namespace MychIO.Device.TouchPanel
         {
             _currentState = NO_INPUT_PACKET;
         }
-
-        public unsafe override void ReadDataDebounce(IntPtr pointer)
-        {
-            if (pointer == IntPtr.Zero)
-            {
-                return;
-            }
-            byte[] rawInput = new byte[MAX_TOUCH_POINTS * DATA_POINTS * SHORT_SIZE];
-            byte* pByte = (byte*)pointer;
-            for (int i = 0; i < MAX_TOUCH_POINTS * DATA_POINTS; i++)
-            {
-                rawInput[i] = *(pByte + i);
-            }
-
-            short[] currentInput = new short[MAX_TOUCH_POINTS * DATA_POINTS];
-            Buffer.BlockCopy(rawInput, 0, currentInput, 0, currentInput.Length);
-
-            // TODO: Implement
-
-        }
-
         public unsafe override void ReadData(IntPtr pointer)
         {
 
@@ -142,7 +121,6 @@ namespace MychIO.Device.TouchPanel
             return Task.CompletedTask;
         }
         public override void ReadData(byte[] data) { }
-        public override void ReadDataDebounce(byte[] data) { }
         public override Task OnDisconnectWrite()
         {
             return Task.CompletedTask;

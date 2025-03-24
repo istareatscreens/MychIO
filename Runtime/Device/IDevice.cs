@@ -11,8 +11,6 @@ namespace MychIO.Device
         void ResetState();
         void ReadData(byte[] data);
         void ReadData(IntPtr intPtr);
-        void ReadDataDebounce(byte[] data);
-        void ReadDataDebounce(IntPtr intPtr);
         Task OnStartWrite();
         Task OnDisconnectWrite();
         Task<IDevice> Connect();
@@ -34,6 +32,5 @@ namespace MychIO.Device
         Task SetInputCallbacks(IDictionary<T1, Action<T1, T2>> inputSubscriptions);
         void AddInputCallback(T1 interactionZone, Action<T1, T2> callback);
         string DeviceName();
-
     }
 }

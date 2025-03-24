@@ -13,10 +13,6 @@ namespace MychIO.Device
         where T3 : IConnectionProperties 
         where T2 : Enum
     {
-        // Debounce Properties
-        protected readonly Dictionary<T1, long> _lastInputTriggerTimes;
-        protected TimeSpan _debounceTime;
-        private static readonly Stopwatch _stopwatch = Stopwatch.StartNew();
 
         protected const byte MOST_SIGNIFICANT_BIT = 0b10000000;
         protected const byte LEAST_SIGNIFICANT_BIT = 0b00000001;
@@ -61,14 +57,6 @@ namespace MychIO.Device
             foreach (var error in _connectionProperties.GetErrors())
             {
                 manager.handleEvent(Event.IOEventType.InvalidDevicePropertyError, _classification, error);
-            }
-
-            // Setup Debounce
-            _debounceTime = _connectionProperties.GetDebounceTime();
-            _lastInputTriggerTimes = new Dictionary<T1, long>();
-            foreach (T1 zone in Enum.GetValues(typeof(T1)))
-            {
-                _lastInputTriggerTimes[zone] = 0; // Initialize with 0 milliseconds
             }
 
             // Connect
@@ -166,36 +154,6 @@ namespace MychIO.Device
         // just implement them in all devices objects
         public abstract void ReadData(byte[] data);
         public abstract void ReadData(IntPtr data);
-        public abstract void ReadDataDebounce(byte[] data);
-        public abstract void ReadDataDebounce(IntPtr intPtr);
-
-        [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        protected void DebouncedHandleInputChange<T4>(T1 zone, Func<T4, bool> callback, T4 input)
-        {
-            long now = _stopwatch.ElapsedMilliseconds;
-
-            var diff = now - _lastInputTriggerTimes[zone];
-            if (diff < _debounceTime.TotalMilliseconds)
-            {
-#if DEBUG
-                _manager.handleEvent(Event.IOEventType.Debug, 
-                                     _classification, 
-                                     $"[Debounce] Received device response\nInterval: {diff}ms");
-#endif
-                return;
-            }
-
-            // handle input and check if there has been a change
-            if (callback(input))
-            {
-                _lastInputTriggerTimes[zone] = now;
-#if DEBUG
-                _manager.handleEvent(Event.IOEventType.Debug,
-                                     _classification,
-                                     $"[Update] Received device response");
-#endif
-            }
-        }
 
         public abstract Task Write<T>(params T[] interactions) where T:Enum;
 

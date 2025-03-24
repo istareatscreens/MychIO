@@ -80,9 +80,7 @@ namespace MychIO.Connection.SerialDevice
 
         private Action<byte[]> GetRecieveDataFunction()
         {
-            return _connectionProperties.GetDebounceTime() > TimeSpan.FromMilliseconds(0) ?
-                         new Action<byte[]>((data) => _device.ReadDataDebounce(data)) :
-                         new Action<byte[]>((data) => _device.ReadData(data));
+            return new Action<byte[]>((data) => _device.ReadData(data));
         }
 
         private async Task ReceiveData(Action<byte[]> ReadData)
