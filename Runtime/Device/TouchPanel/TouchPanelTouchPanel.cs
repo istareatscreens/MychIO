@@ -4,6 +4,7 @@ using System.Runtime.CompilerServices;
 using System.Threading.Tasks;
 using MychIO.Connection;
 using MychIO.Connection.TouchPanelDevice;
+using MychIO.Helper;
 
 namespace MychIO.Device.TouchPanel
 {
@@ -82,7 +83,10 @@ namespace MychIO.Device.TouchPanel
             // UnityEngine.Debug.Log(GetTouchEventsString(currentInput));
 
         }
-
+        public override void ReadData(ReadOnlySpan<byte> data) 
+        {
+            
+        }
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         private void handleInputChange(TouchPanelZone zone, Tuple<short, short> coordinates, short state)
         {
@@ -122,16 +126,28 @@ namespace MychIO.Device.TouchPanel
 #endif
 
         // Not used
-        public override Task Write<T>(params T[] interactions)
+        public override void Write<T>(params T[] interactions)
+        {
+            ThrowHelper.NotSupported();
+        }
+
+        public override Task WriteAsync<T>(params T[] interactions)
         {
             return ThrowHelper.NotSupported<Task>();
         }
-        public override Task OnConnected()
+        public override void OnConnected()
+        {
+            return;
+        }
+        public override Task OnConnectedAsync()
         {
             return Task.CompletedTask;
         }
-        public override void ReadData(byte[] data) { }
-        public override Task OnDisconnected()
+        public override void OnDisconnected()
+        {
+            return;
+        }
+        public override Task OnDisconnectedAsync()
         {
             return Task.CompletedTask;
         }

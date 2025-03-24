@@ -3,6 +3,7 @@ using System.Runtime.InteropServices;
 using System.Threading.Tasks;
 using MychIO.Device;
 using MychIO.Event;
+using MychIO.Helper;
 
 namespace MychIO.Connection.TouchPanelDevice
 {
@@ -88,8 +89,11 @@ namespace MychIO.Connection.TouchPanelDevice
             // you would likely need to use different window handles
             return connectionProperties is not TouchPanelDeviceProperties;
         }
-
-        public override Task Connect()
+        public override void Connect()
+        {
+            ConnectAsync().Wait();
+        }
+        public override Task ConnectAsync()
         {
 
             // IsConnected() will always return true here since successful initilization
@@ -124,26 +128,18 @@ namespace MychIO.Connection.TouchPanelDevice
         {
             return new UnityTouchPanelApiPlugin.DataCallbackDelegate(_device.ReadData);
         }
-
-        public override async Task Disconnect()
+        public override void Disconnect()
+        {
+            DisconnectAsync().Wait();
+        }
+        public override async Task DisconnectAsync()
         {
             if (IsConnected)
             {
-                await _device.OnDisconnected();
+                await _device.OnDisconnectedAsync();
             }
             UnityTouchPanelApiPlugin.Disconnect(_pluginHandle);
         }
-
-        
-
-        // currently no need to write to HID devices so not implemented
-        public override Task Write(byte[] bytes)
-        {
-            return Task.CompletedTask;
-        }
-
-
-
         public override void Read()
         {
             if (!IsReading && _pluginHandle != null && _pluginHandle != IntPtr.Zero)
@@ -158,13 +154,26 @@ namespace MychIO.Connection.TouchPanelDevice
                 _manager.handleEvent(IOEventType.ConnectionError, _device.Classification, _device.GetType().ToString() + " Error: failed to start reading from device");
             }
         }
-
         public override void StopReading()
         {
             if (IsReading)
             {
                 UnityTouchPanelApiPlugin.StopReading(_pluginHandle);
             }
+        }
+
+        public override void Write(ReadOnlySpan<byte> data)
+        {
+            ThrowHelper.NotSupported();
+        }
+        public override Task WriteAsync(ReadOnlyMemory<byte> data)
+        {
+            return ThrowHelper.NotSupported<Task>();
+        }
+        // currently no need to write to HID devices so not implemented
+        public override Task WriteAsync(byte[] bytes)
+        {
+            return ThrowHelper.NotSupported<Task>();
         }
     }
 }

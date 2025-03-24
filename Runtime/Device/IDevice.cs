@@ -18,22 +18,29 @@ namespace MychIO.Device
         IConnectionProperties ConnectionProperties { get; }
 
         void ResetState();
-        void ReadData(byte[] data);
+        void ReadData(ReadOnlyMemory<byte> data);
+        void ReadData(ReadOnlySpan<byte> data);
         void ReadData(IntPtr intPtr);
-        Task OnConnected();
-        Task OnDisconnected();
-        Task<IDevice> Connect();
-        Task Disconnect();
+        void OnConnected();
+        Task OnConnectedAsync();
+        void OnDisconnected();
+        Task OnDisconnectedAsync();
+        IDevice Connect();
+        Task<IDevice> ConnectAsync();
+        void Disconnect();
+        Task DisconnectAsync();
         void StopReading();
         void StartReading();
         bool CanConnect(IDevice device);
-        Task Write<T>(params T[] interactions) where T: Enum;
+        void Write<T>(params T[] interactions) where T: Enum;
+        Task WriteAsync<T>(params T[] interactions) where T : Enum;
     }
     // Where T1 is the input type, e.g. A1, and T2 is the InputState
     interface IDevice<TZone, TState> : IDevice where TZone : Enum where TState : Enum
     {
         // Callback has parameters Input Type, and Interaction State (e.g. On/Off) respectively
-        Task SetInputCallbacks(IDictionary<TZone, Action<TZone, TState>> inputSubscriptions);
+        void SetInputCallbacks(IDictionary<TZone, Action<TZone, TState>> inputSubscriptions);
+        Task SetInputCallbacksAsync(IDictionary<TZone, Action<TZone, TState>> inputSubscriptions);
         void AddInputCallback(TZone interactionZone, Action<TZone, TState> callback);
     }
 }

@@ -5,6 +5,7 @@ using System.Runtime.CompilerServices;
 using System.Threading.Tasks;
 using MychIO.Connection;
 using MychIO.Connection.HidDevice;
+using MychIO.Helper;
 
 namespace MychIO.Device
 {
@@ -64,11 +65,11 @@ namespace MychIO.Device
 
         public new static HidDeviceProperties GetDefaultDeviceProperties() => (HidDeviceProperties)GetDefaultConnectionProperties();
         // ** Connection Properties
-        private static readonly byte[] NO_INPUT_PACKET = new byte[]
+        private static readonly ReadOnlyMemory<byte> NO_INPUT_PACKET = new byte[]
         {
             0x00,0x02,0x00,0x0D,0xF8
         };
-        private byte[] _currentState = NO_INPUT_PACKET;
+        private byte[] _currentState = new byte[BYTES_TO_READ];
         private IDictionary<ButtonRingZone, bool> _currentActiveStates;
         public static readonly IDictionary<ButtonRingCommand, byte[]> Commands = new Dictionary<ButtonRingCommand, byte[]> { };
 
@@ -78,6 +79,7 @@ namespace MychIO.Device
             IOManager manager = null
         ) : base(inputSubscriptions, connectionProperties, manager)
         {
+            NO_INPUT_PACKET.CopyTo(_currentState);
             // current states
             _currentActiveStates = new Dictionary<ButtonRingZone, bool>();
             foreach (ButtonRingZone zone in Enum.GetValues(typeof(ButtonRingZone)))
@@ -88,13 +90,12 @@ namespace MychIO.Device
 
         public override void ResetState()
         {
-            _currentState = NO_INPUT_PACKET;
+            NO_INPUT_PACKET.CopyTo(_currentState);
         }
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public unsafe override void ReadData(IntPtr pointer)
         {
-
             /*
                 if the code below causes any crashes or issues it might be better to 
                 change this function to safe and copy the bytes this way.
@@ -109,17 +110,17 @@ namespace MychIO.Device
             {
                 return;
             }
-
+            Span<byte> fromDeviceData = new Span<byte>((void*)pointer, BYTES_TO_READ);
             Span<byte> currentInput = stackalloc byte[BYTES_TO_READ];
-            byte* pByte = (byte*)pointer;
-            for (int i = 0; i < BYTES_TO_READ; i++)
-            {
-                currentInput[i] = *(pByte + i);
-            }
+            fromDeviceData.CopyTo(currentInput);
+            ReadData(currentInput);
             /** UNSAFE CODE */
-
+        }
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public override void ReadData(ReadOnlySpan<byte> data)
+        {
             // Check if the state has changed
-            if (ByteArraysEqual(_currentState, currentInput))
+            if (ByteArraysEqual(_currentState, data))
             {
                 return;
             }
@@ -132,18 +133,18 @@ namespace MychIO.Device
                 // bit shift left -> on (new number)
                 down -> byte 3, position 1 ON
             */
-            if (_currentState[3] != currentInput[3])
+            if (_currentState[3] != data[3])
             {
-                var InvertedByte3 = (byte)~currentInput[3];
+                var InvertedByte3 = (byte)~data[3];
                 handleInputChange(ButtonRingZone.BA3, InvertedByte3, LEAST_SIGNIFICANT_BIT);
 
-                handleInputChange(ButtonRingZone.ArrowUp, currentInput[3], 0b00000010);
+                handleInputChange(ButtonRingZone.ArrowUp, data[3], 0b00000010);
 
                 handleInputChange(ButtonRingZone.BA1, InvertedByte3, 0b00000100);
 
                 handleInputChange(ButtonRingZone.BA2, InvertedByte3, 0b00001000);
 
-                handleInputChange(ButtonRingZone.ArrowDown, currentInput[3], 0b01000000);
+                handleInputChange(ButtonRingZone.ArrowDown, data[3], 0b01000000);
             }
 
             /*
@@ -155,9 +156,9 @@ namespace MychIO.Device
                 BA8  -> byte 4, position 4 OFF
                 Select -> byte 4, position 6 ON
             */
-            if (_currentState[4] != currentInput[3])
+            if (_currentState[4] != data[3])
             {
-                var InvertedByte4 = (byte)~currentInput[4];
+                var InvertedByte4 = (byte)~data[4];
 
                 handleInputChange(ButtonRingZone.BA4, InvertedByte4, MOST_SIGNIFICANT_BIT);
 
@@ -169,24 +170,22 @@ namespace MychIO.Device
 
                 handleInputChange(ButtonRingZone.BA8, InvertedByte4, 0b00001000);
 
-                handleInputChange(ButtonRingZone.Select, currentInput[4], 0b00000010);
+                handleInputChange(ButtonRingZone.Select, data[4], 0b00000010);
             }
 
             // coin -> byte 0 (00000001)
-            if (_currentState[0] != currentInput[0])
+            if (_currentState[0] != data[0])
             {
                 handleInputChange(
                     ButtonRingZone.InsertCoin,
-                    currentInput[0],
+                    data[0],
                     LEAST_SIGNIFICANT_BIT
                 );
             }
 
-            currentInput.CopyTo(_currentState);
+            data.CopyTo(_currentState);
             //_currentState = currentInput;
-
         }
-
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         private bool handleInputChange(ButtonRingZone zone, byte input, byte mask)
         {
@@ -211,18 +210,29 @@ namespace MychIO.Device
             return a1.SequenceEqual(a2);
         }
 
+
         // Not used
-        public override Task Write<T>(params T[] interactions)
+        public override void Write<T>(params T[] interactions)
+        {
+            ThrowHelper.NotSupported();
+        }
+        public override Task WriteAsync<T>(params T[] interactions)
         {
             return ThrowHelper.NotSupported<Task>();
         }
-        public override Task OnConnected()
+        public override void OnConnected()
+        {
+            return;
+        }
+        public override Task OnConnectedAsync()
         {
             return Task.CompletedTask;
         }
-        public override void ReadData(byte[] data) { }
-
-        public override Task OnDisconnected()
+        public override void OnDisconnected()
+        {
+            return;
+        }
+        public override Task OnDisconnectedAsync()
         {
             return Task.CompletedTask;
         }

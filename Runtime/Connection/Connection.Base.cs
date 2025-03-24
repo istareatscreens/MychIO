@@ -1,3 +1,4 @@
+using System;
 using System.Threading.Tasks;
 using MychIO.Device;
 using MychIO.Event;
@@ -27,11 +28,13 @@ namespace MychIO.Connection
             _manager = manager;
         }
 
-        public abstract Task Connect();
-
-        public abstract Task Disconnect();
-        
-        public abstract Task Write(byte[] bytes);
+        public abstract void Connect();
+        public abstract Task ConnectAsync();
+        public abstract void Disconnect();
+        public abstract Task DisconnectAsync();
+        public abstract void Write(ReadOnlySpan<byte> data);
+        public abstract Task WriteAsync(byte[] bytes);
+        public abstract Task WriteAsync(ReadOnlyMemory<byte> data);
 
         // This is used to prevent the same physical device from being connected
         // to twice e.g. COM3 then you need to override this and check for that

@@ -4,7 +4,10 @@ using MychIO.Connection;
 
 namespace MychIO.Device
 {
-    public abstract partial class Device<TZone, TState, TConnProps> : IDevice<TZone, TState> where TZone : Enum where TConnProps : IConnectionProperties where TState : Enum
+    public abstract partial class Device<TZone, TState, TConnProps> : IDevice<TZone, TState> 
+        where TZone : Enum 
+        where TState : Enum
+        where TConnProps : IConnectionProperties 
     {
         // Properties used by DeviceFactory to construct the concrete class. These must be overridden via the new keyword! 
         public static ConnectionType GetConnectionType()

@@ -5,6 +5,7 @@ using System.Runtime.CompilerServices;
 using System.Threading.Tasks;
 using MychIO.Connection;
 using MychIO.Connection.HidDevice;
+using MychIO.Helper;
 
 namespace MychIO.Device
 {
@@ -59,13 +60,13 @@ namespace MychIO.Device
         );
         public new static HidDeviceProperties GetDefaultDeviceProperties() => (HidDeviceProperties)GetDefaultConnectionProperties();
         // ** Connection Properties
-        private static readonly byte[] NO_INPUT_PACKET = new byte[]
+        private static readonly ReadOnlyMemory<byte> NO_INPUT_PACKET = new byte[]
         {
             0x00,0x00,0x00,0x00,0x00,
             0x00,0x00,0x00,0x00,0x00,
             0x00,0x00
         };
-        private byte[] _currentState = NO_INPUT_PACKET;
+        private byte[] _currentState = new byte[BYTES_TO_READ];
         private IDictionary<ButtonRingZone, bool> _currentActiveStates;
         public static readonly IDictionary<ButtonRingCommand, byte[]> Commands = new Dictionary<ButtonRingCommand, byte[]> { };
 
@@ -75,6 +76,7 @@ namespace MychIO.Device
             IOManager manager = null
         ) : base(inputSubscriptions, connectionProperties, manager)
         {
+            NO_INPUT_PACKET.CopyTo(_currentState);
             // current states
             _currentActiveStates = new Dictionary<ButtonRingZone, bool>();
             foreach (ButtonRingZone zone in Enum.GetValues(typeof(ButtonRingZone)))
@@ -85,13 +87,12 @@ namespace MychIO.Device
 
         public override void ResetState()
         {
-            _currentState = NO_INPUT_PACKET;
+            NO_INPUT_PACKET.CopyTo(_currentState);
         }
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public unsafe override void ReadData(IntPtr pointer)
         {
-
             /*
                 if the code below causes any crashes or issues it might be better to 
                 change this function to safe and copy the bytes this way.
@@ -106,41 +107,38 @@ namespace MychIO.Device
             {
                 return;
             }
-
+            Span<byte> fromDeviceData = new Span<byte>((void*)pointer, BYTES_TO_READ);
             Span<byte> currentInput = stackalloc byte[BYTES_TO_READ];
-            byte* pByte = (byte*)pointer;
-            for (int i = 0; i < BYTES_TO_READ; i++)
-            {
-                currentInput[i] = *(pByte + i);
-            }
+            fromDeviceData.CopyTo(currentInput);
+            ReadData(currentInput);
             /** UNSAFE CODE */
-
+        }
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public override void ReadData(ReadOnlySpan<byte> data)
+        {
             // Check if the state has changed
-            if (ByteArraysEqual(_currentState, currentInput))
+            if (ByteArraysEqual(_currentState, data))
             {
                 return;
             }
 
-            handleInputChange(ButtonRingZone.BA3, currentInput[1]);
-            handleInputChange(ButtonRingZone.ArrowUp, currentInput[8]);
-            handleInputChange(ButtonRingZone.BA1, currentInput[3]);
-            handleInputChange(ButtonRingZone.BA2, currentInput[2]);
-            handleInputChange(ButtonRingZone.ArrowDown, currentInput[10]);
-            handleInputChange(ButtonRingZone.BA4, currentInput[0]);
-            handleInputChange(ButtonRingZone.BA5, currentInput[7]);
-            handleInputChange(ButtonRingZone.BA6, currentInput[6]);
-            handleInputChange(ButtonRingZone.BA7, currentInput[5]);
-            handleInputChange(ButtonRingZone.BA8, currentInput[4]);
-            handleInputChange(ButtonRingZone.Select, currentInput[9]);
-            handleInputChange(ButtonRingZone.InsertCoin, currentInput[11]);
+            HandleInputChangeInternal(ButtonRingZone.BA3, data[1]);
+            HandleInputChangeInternal(ButtonRingZone.ArrowUp, data[8]);
+            HandleInputChangeInternal(ButtonRingZone.BA1, data[3]);
+            HandleInputChangeInternal(ButtonRingZone.BA2, data[2]);
+            HandleInputChangeInternal(ButtonRingZone.ArrowDown, data[10]);
+            HandleInputChangeInternal(ButtonRingZone.BA4, data[0]);
+            HandleInputChangeInternal(ButtonRingZone.BA5, data[7]);
+            HandleInputChangeInternal(ButtonRingZone.BA6, data[6]);
+            HandleInputChangeInternal(ButtonRingZone.BA7, data[5]);
+            HandleInputChangeInternal(ButtonRingZone.BA8, data[4]);
+            HandleInputChangeInternal(ButtonRingZone.Select, data[9]);
+            HandleInputChangeInternal(ButtonRingZone.InsertCoin, data[11]);
 
-            currentInput.CopyTo(_currentState);
-            //_currentState = currentInput;
-
+            data.CopyTo(_currentState);
         }
-
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        private bool handleInputChange(ButtonRingZone zone, byte input)
+        private bool HandleInputChangeInternal(ButtonRingZone zone, byte input)
         {
             var currentActiveState =  _currentActiveStates[zone];
             if ((LEAST_SIGNIFICANT_BIT == input) != currentActiveState)
@@ -164,16 +162,27 @@ namespace MychIO.Device
         }
 
         // Not used
-        public override Task Write<T>(params T[] interactions)
+        public override void Write<T>(params T[] interactions)
+        {
+            ThrowHelper.NotSupported();
+        }
+        public override Task WriteAsync<T>(params T[] interactions)
         {
             return ThrowHelper.NotSupported<Task>();
         }
-        public override Task OnConnected()
+        public override void OnConnected()
+        {
+            return;
+        }
+        public override Task OnConnectedAsync()
         {
             return Task.CompletedTask;
         }
-        public override void ReadData(byte[] data) { }
-        public override Task OnDisconnected()
+        public override void OnDisconnected()
+        {
+            return;
+        }
+        public override Task OnDisconnectedAsync()
         {
             return Task.CompletedTask;
         }

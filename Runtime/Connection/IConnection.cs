@@ -1,3 +1,4 @@
+using System;
 using System.Threading.Tasks;
 
 namespace MychIO.Connection
@@ -7,11 +8,15 @@ namespace MychIO.Connection
         bool IsConnected { get; }
         bool IsReading { get; }
 
-        Task Disconnect();
-        Task Connect();
+        void Disconnect();
+        Task DisconnectAsync();
+        void Connect();
+        Task ConnectAsync();
         bool CanConnect(IConnection connection);
         void StopReading();
         void Read();
-        Task Write(byte[] data);
+        void Write(ReadOnlySpan<byte> data);
+        Task WriteAsync(byte[] data);
+        Task WriteAsync(ReadOnlyMemory<byte> data);
     }
 }

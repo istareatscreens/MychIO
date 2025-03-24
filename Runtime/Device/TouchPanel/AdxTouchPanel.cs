@@ -125,13 +125,18 @@ namespace MychIO.Device
             }
         }
 
-        public override async Task OnConnected()
+        public override void OnConnected()
         {
-            await Write(TouchPanelCommand.Reset, TouchPanelCommand.Halt);
+            OnConnectedAsync().Wait();
+        }
+
+        public override async Task OnConnectedAsync()
+        {
+            await WriteAsync(TouchPanelCommand.Reset, TouchPanelCommand.Halt);
             // Calibration
             for (byte a = 0x41; a <= 0x62; a++)
             {
-                await _connection.Write(Encoding.UTF8.GetBytes("{L" + (char)a + "r2}"));
+                await _connection.WriteAsync(Encoding.UTF8.GetBytes("{L" + (char)a + "r2}"));
             }
             dynamic sens = 0;
             var connProperties = _connectionProperties.Properties;
@@ -144,7 +149,7 @@ namespace MychIO.Device
                     for (byte a = 0x41; a <= 0x62; a++)
                     {
                         var value = GetSensitivityValue(a, sens);
-                        await _connection.Write(Encoding.UTF8.GetBytes($"{{{"L"}{(char)a}k{(char)value}}}"));
+                        await _connection.WriteAsync(Encoding.UTF8.GetBytes($"{{{"L"}{(char)a}k{(char)value}}}"));
                     }
                 }
                 catch(Exception e)
@@ -154,94 +159,51 @@ namespace MychIO.Device
                                          $"An error occurred while setting sensitivity:\n{e}");
                 }
             }
-            await Write(TouchPanelCommand.Start);
+            await WriteAsync(TouchPanelCommand.Start);
         }
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public override void ReadData(byte[] data)
+        public override void ReadData(ReadOnlySpan<byte> data)
         {
+            const int BIT_1ST_MASK = 0b00000001;
+            const int BIT_2ND_MASK = 0b00000010;
+            const int BIT_3RD_MASK = 0b00000100;
+            const int BIT_4TH_MASK = 0b00001000;
+            const int BIT_5TH_MASK = 0b00010000;
             // ensure buffer is aligned
-            if (data[0] != '(')
-            {
+            var headIndexs = GetPacketHeadIndexs(stackalloc int[data.Length], data);
+
+            if (headIndexs.IsEmpty)
                 return;
-            }
-
-            byte[] currentInput = new byte[BYTES_TO_READ];
-
-            Buffer.BlockCopy(data, data.Length - 9, currentInput, 0, 9);
-
-            if (ByteArraysEqual(_currentState, currentInput))
+            for (var i = 0; i < headIndexs.Length; i++)
             {
-                return;
-            }
+                var headIndex = headIndexs[i];
+                if (headIndex + BYTES_TO_READ > data.Length)
+                    return;
+                var packet = data.Slice(headIndexs[i], BYTES_TO_READ);
+                var tail = packet[BYTES_TO_READ - 1];
+                if (tail != ')')
+                    continue;
 
-            if (currentInput[1] != _currentState[1])
-            {
-                handleInputChange(TouchPanelZone.A1, currentInput[1], 0b00000001);
-                handleInputChange(TouchPanelZone.A2, currentInput[1], 0b00000010);
-                handleInputChange(TouchPanelZone.A3, currentInput[1], 0b00000100);
-                handleInputChange(TouchPanelZone.A4, currentInput[1], 0b00001000);
-                handleInputChange(TouchPanelZone.A5, currentInput[1], 0b00010000);
+                for (var j = 1; j < 7; j++)
+                {
+                    var @byte = packet[j];
+                    HandleInputChangeInternal((TouchPanelZone)(0 + ((j - 1) * 5)), @byte, BIT_1ST_MASK);
+                    HandleInputChangeInternal((TouchPanelZone)(1 + ((j - 1) * 5)), @byte, BIT_2ND_MASK);
+                    HandleInputChangeInternal((TouchPanelZone)(2 + ((j - 1) * 5)), @byte, BIT_3RD_MASK);
+                    HandleInputChangeInternal((TouchPanelZone)(3 + ((j - 1) * 5)), @byte, BIT_4TH_MASK);
+                    HandleInputChangeInternal((TouchPanelZone)(4 + ((j - 1) * 5)), @byte, BIT_5TH_MASK);
+                }
+                packet.CopyTo(_currentState);
             }
-
-            if (currentInput[2] != _currentState[2])
-            {
-                handleInputChange(TouchPanelZone.A6, currentInput[2], 0b00000001);
-                handleInputChange(TouchPanelZone.A7, currentInput[2], 0b00000010);
-                handleInputChange(TouchPanelZone.A8, currentInput[2], 0b00000100);
-                handleInputChange(TouchPanelZone.B1, currentInput[2], 0b00001000);
-                handleInputChange(TouchPanelZone.B2, currentInput[2], 0b00010000);
-            }
-
-            if (currentInput[3] != _currentState[3])
-            {
-                handleInputChange(TouchPanelZone.B3, currentInput[3], 0b00000001);
-                handleInputChange(TouchPanelZone.B4, currentInput[3], 0b00000010);
-                handleInputChange(TouchPanelZone.B5, currentInput[3], 0b00000100);
-                handleInputChange(TouchPanelZone.B6, currentInput[3], 0b00001000);
-                handleInputChange(TouchPanelZone.B7, currentInput[3], 0b00010000);
-            }
-
-            if (currentInput[4] != _currentState[4])
-            {
-                handleInputChange(TouchPanelZone.B8, currentInput[4], 0b00000001);
-                handleInputChange(TouchPanelZone.C1, currentInput[4], 0b00000010);
-                handleInputChange(TouchPanelZone.C2, currentInput[4], 0b00000100);
-                handleInputChange(TouchPanelZone.D1, currentInput[4], 0b00001000);
-                handleInputChange(TouchPanelZone.D2, currentInput[4], 0b00010000);
-            }
-
-            if (currentInput[5] != _currentState[5])
-            {
-                handleInputChange(TouchPanelZone.D3, currentInput[5], 0b00000001);
-                handleInputChange(TouchPanelZone.D4, currentInput[5], 0b00000010);
-                handleInputChange(TouchPanelZone.D5, currentInput[5], 0b00000100);
-                handleInputChange(TouchPanelZone.D6, currentInput[5], 0b00001000);
-                handleInputChange(TouchPanelZone.D7, currentInput[5], 0b00010000);
-            }
-            if (currentInput[6] != _currentState[6])
-            {
-                handleInputChange(TouchPanelZone.D8, currentInput[6], 0b00000001);
-                handleInputChange(TouchPanelZone.E1, currentInput[6], 0b00000010);
-                handleInputChange(TouchPanelZone.E2, currentInput[6], 0b00000100);
-                handleInputChange(TouchPanelZone.E3, currentInput[6], 0b00001000);
-                handleInputChange(TouchPanelZone.E4, currentInput[6], 0b00010000);
-            }
-
-            if (currentInput[7] != _currentState[7])
-            {
-                handleInputChange(TouchPanelZone.E5, currentInput[7], 0b00000001);
-                handleInputChange(TouchPanelZone.E6, currentInput[7], 0b00000010);
-                handleInputChange(TouchPanelZone.E7, currentInput[7], 0b00000100);
-                handleInputChange(TouchPanelZone.E8, currentInput[7], 0b00001000);
-            }
-
-            _currentState = currentInput;
         }
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        private bool handleInputChange(TouchPanelZone zone, byte input, byte mask)
+        private bool HandleInputChangeInternal(TouchPanelZone zone, byte input, byte mask)
         {
+            if (zone > TouchPanelZone.E8 || zone < TouchPanelZone.A1)
+                return false;
+
             var currentActiveState = _currentActiveStates[zone];
             if (((input & mask) != 0) != currentActiveState)
             {
@@ -261,7 +223,12 @@ namespace MychIO.Device
             _currentState = NO_INPUT_PACKET;
         }
 
-        public override async Task Write<T>(params T[] interactions)
+        public override void Write<T>(params T[] interactions)
+        {
+            WriteAsync(interactions).Wait();
+        }
+
+        public override async Task WriteAsync<T>(params T[] interactions)
         {
             var commandBytes = interactions.OfType<TouchPanelCommand>()
             .SelectMany(command =>
@@ -278,23 +245,41 @@ namespace MychIO.Device
 
             foreach (var command in commandBytes)
             {
-                await _connection.Write(command);
+                await _connection.WriteAsync(command);
             }
         }
 
-        // source: https://stackoverflow.com/a/48599119
-        [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        private static bool ByteArraysEqual(ReadOnlySpan<byte> a1, ReadOnlySpan<byte> a2)
+        ReadOnlySpan<int> GetPacketHeadIndexs(Span<int> buffer, ReadOnlySpan<byte> packet)
         {
-            return a1.SequenceEqual(a2);
+            if(buffer.Length < packet.Length)
+            {
+                throw new ArgumentException();
+            }
+            int x = -1;
+            for (var y = 0; y < packet.Length; y++)
+            {
+                var @byte = packet[y];
+                if (@byte == '(')
+                {
+                    buffer[++x] = y;
+                }
+            }
+            if (x == -1)
+                return ReadOnlySpan<int>.Empty;
+            return buffer.Slice(0, x + 1);
         }
-
         // Not used
         public override void ReadData(IntPtr intPtr)
         {
             throw new NotImplementedException();
         }
-        public override Task OnDisconnected()
+
+        public override void OnDisconnected()
+        {
+            return;
+        }
+
+        public override Task OnDisconnectedAsync()
         {
             return Task.CompletedTask;
         }

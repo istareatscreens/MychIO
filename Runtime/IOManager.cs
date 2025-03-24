@@ -61,7 +61,7 @@ namespace MychIO
             {
                 if (_deviceClassificationToDevice.TryGetValue(deviceClassification, out var oldDevice))
                 {
-                    await oldDevice.Disconnect();
+                    await oldDevice.DisconnectAsync();
                 }
 
                 var device = await DeviceFactory.GetDeviceAsync(
@@ -153,11 +153,11 @@ namespace MychIO
             return newDict;
         }
 
-        public async Task WriteToDevice<T>(DeviceClassification deviceClassification, params T[] command) where T:Enum
+        public async Task WriteToDeviceAsync<T>(DeviceClassification deviceClassification, params T[] command) where T:Enum
         {
             if (_deviceClassificationToDevice.TryGetValue(deviceClassification, out var device) && device.IsConnected)
             {
-                await device.Write(command);
+                await device.WriteAsync(command);
             }
         }
 
@@ -236,7 +236,7 @@ namespace MychIO
             if (inputAction is Dictionary<T1, Action<T1, T2>> typedInputAction)
             {
                 // Update the device's input subscription
-                await ((IDevice<T1, T2>)device).SetInputCallbacks(typedInputAction);
+                await ((IDevice<T1, T2>)device).SetInputCallbacksAsync(typedInputAction);
             }
             else
             {

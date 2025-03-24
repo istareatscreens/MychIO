@@ -1,10 +1,10 @@
 using System;
 using System.Collections.Generic;
 using System.Diagnostics;
-using System.Diagnostics.CodeAnalysis;
 using System.Runtime.CompilerServices;
 using System.Threading.Tasks;
 using MychIO.Connection;
+using MychIO.Helper;
 
 namespace MychIO.Device
 {
@@ -94,54 +94,58 @@ namespace MychIO.Device
         {
             Task.Run(() =>
             {
-                _connection.Disconnect();
+                _connection.DisconnectAsync();
             });
         }
-
-        
-
-        public void SetInputCallbacks(IDictionary<TZone, Action<TZone, TState>> inputSubscriptions)
-        {
-            _inputSubscriptions = inputSubscriptions;
-        }
-
         public void AddInputCallback(TZone interactionZone, Action<TZone, TState> callback)
         {
             _inputSubscriptions[interactionZone] = callback;
         }
-
-        public async Task<IDevice> Connect()
+        public IDevice Connect()
         {
-            await _connection.Connect();
+            var task = ConnectAsync();
+            task.Wait();
+            return task.Result;
+        }
+        public async Task<IDevice> ConnectAsync()
+        {
+            await _connection.ConnectAsync();
             return (IDevice)this;
         }
-        public async Task Disconnect()
+        public void Disconnect()
         {
-            await _connection.Disconnect();
+            DisconnectAsync().Wait();
         }
-
-        
-
+        public async Task DisconnectAsync()
+        {
+            await _connection.DisconnectAsync();
+        }
         public bool CanConnect(IDevice device)
         {
             return _connection.CanConnect(device.Connection);
         }
         public abstract void ResetState();
 
-        public abstract Task OnConnected();
+        public abstract void OnConnected();
+        public abstract Task OnConnectedAsync();
+        public abstract void OnDisconnected();
+        public abstract Task OnDisconnectedAsync();
 
-        public abstract Task OnDisconnected();
-
-        Task IDevice<TZone, TState>.SetInputCallbacks(IDictionary<TZone, Action<TZone, TState>> inputSubscriptions)
+        public void SetInputCallbacks(IDictionary<TZone, Action<TZone, TState>> inputSubscriptions)
         {
             // To prevent side effects due to threading reading will be halted temporarily to load new callbacks
             StopReading();
             _inputSubscriptions = inputSubscriptions;
             StartReading();
+        }
+        public Task SetInputCallbacksAsync(IDictionary<TZone, Action<TZone, TState>> inputSubscriptions)
+        {
+            SetInputCallbacks(inputSubscriptions);
             return Task.CompletedTask;
         }
 
-       
+
+
 
         public void StopReading()
         {
@@ -158,13 +162,22 @@ namespace MychIO.Device
                 _connection.Read();
             }
         }
-
+        public virtual void ReadData(ReadOnlyMemory<byte> data)
+        {
+            ReadData(data.Span);
+        }
         // Making these methods virtual introduces overhead so
         // just implement them in all devices objects
-        public abstract void ReadData(byte[] data);
+        public abstract void ReadData(ReadOnlySpan<byte> data);
         public abstract void ReadData(IntPtr data);
-        public abstract Task Write<T>(params T[] interactions) where T:Enum;
-
+        public abstract void Write<T>(params T[] interactions) where T : Enum;
+        public abstract Task WriteAsync<T>(params T[] interactions) where T : Enum;
+        // source: https://stackoverflow.com/a/48599119
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        protected static bool ByteArraysEqual<T>(ReadOnlySpan<T> a1, ReadOnlySpan<T> a2) where T : IEquatable<T>
+        {
+            return a1.SequenceEqual(a2);
+        }
         private static IDictionary<TZone, Action<TZone, TState>> CreateTypedDictionary(IDictionary<Enum, Action<Enum, Enum>> original)
         {
             var typedDictionary = new Dictionary<TZone, Action<TZone, TState>>();
@@ -179,50 +192,6 @@ namespace MychIO.Device
             }
 
             return typedDictionary;
-        }
-        protected static class ThrowHelper
-        {
-            [DoesNotReturn]
-            public static void NotSupported()
-            {
-                throw new NotSupportedException();
-            }
-            [DoesNotReturn]
-            public static void NotSupported(string message)
-            {
-                throw new NotSupportedException(message);
-            }
-            [DoesNotReturn]
-            public static void NotImplemented()
-            {
-                throw new NotImplementedException();
-            }
-            [DoesNotReturn]
-            public static void NotImplemented(string message)
-            {
-                throw new NotImplementedException(message);
-            }
-
-            [DoesNotReturn]
-            public static TReturn NotSupported<TReturn>()
-            {
-                throw new NotSupportedException();
-            }
-            [DoesNotReturn]
-            public static TReturn NotSupported<TReturn>(string message)
-            {
-                throw new NotSupportedException(message);
-            }
-            [DoesNotReturn]
-            public static TReturn NotImplemented<TReturn>()
-            {
-                throw new NotImplementedException();
-            }
-            [DoesNotReturn]
-            public static TReturn NotImplemented<TReturn>(string message)
-            {
-                throw new NotImplementedException(message);
-            }
         }
     }
 }
