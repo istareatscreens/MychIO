@@ -30,7 +30,7 @@ namespace MychIO.Connection.SerialDevice
         Task _readDataLoop = Task.CompletedTask;
         private CancellationTokenSource _cts = new CancellationTokenSource();
 
-        readonly ReceiveDataHandler _onReceiveData;
+        ReceiveDataHandler _onReceiveData;
         public SerialDeviceConnection(IDevice device, IConnectionProperties connectionProperties, IOManager manager) :
          base(device, connectionProperties, manager)
         {
@@ -198,6 +198,15 @@ namespace MychIO.Connection.SerialDevice
         {
             if (IsReading)
                 return;
+            var dt = _connectionProperties.GetDebounceThreshold();
+            if(dt.TotalMilliseconds > 0)
+            {
+                _onReceiveData = _device.ReadDataWithDebounce;
+            }
+            else
+            {
+                _onReceiveData = _device.ReadData;
+            }
             _readDataLoop = Task.Factory.StartNew(() =>
             {
                 _device.OnConnected();

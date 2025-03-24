@@ -21,6 +21,9 @@ namespace MychIO.Device
         void ReadData(ReadOnlyMemory<byte> data);
         void ReadData(ReadOnlySpan<byte> data);
         void ReadData(IntPtr intPtr);
+        void ReadDataWithDebounce(ReadOnlyMemory<byte> data);
+        void ReadDataWithDebounce(ReadOnlySpan<byte> data);
+        void ReadDataWithDebounce(IntPtr intPtr);
         void OnConnected();
         Task OnConnectedAsync();
         void OnDisconnected();

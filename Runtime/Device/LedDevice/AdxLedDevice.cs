@@ -269,6 +269,14 @@ namespace MychIO.Device
             }
         }
         // Not used
+        public override void ReadDataWithDebounce(IntPtr intPtr)
+        {
+            ThrowHelper.NotSupported();
+        }
+        public override void ReadDataWithDebounce(ReadOnlySpan<byte> data)
+        {
+            ThrowHelper.NotSupported();
+        }
         public override void ReadData(IntPtr intPtr)
         {
             ThrowHelper.NotSupported();

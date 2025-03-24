@@ -71,6 +71,7 @@ namespace MychIO.Device
         };
         private byte[] _currentState = new byte[BYTES_TO_READ];
         private IDictionary<ButtonRingZone, bool> _currentActiveStates;
+        readonly DebounceCallbackHandler<ButtonRingZone, byte, byte> _debounceCallbackHandler;
         public static readonly IDictionary<ButtonRingCommand, byte[]> Commands = new Dictionary<ButtonRingCommand, byte[]> { };
 
         public AdxIO4ButtonRing(
@@ -80,6 +81,7 @@ namespace MychIO.Device
         ) : base(inputSubscriptions, connectionProperties, manager)
         {
             NO_INPUT_PACKET.CopyTo(_currentState);
+            _debounceCallbackHandler = HandleInputChangeInternal;
             // current states
             _currentActiveStates = new Dictionary<ButtonRingZone, bool>();
             foreach (ButtonRingZone zone in Enum.GetValues(typeof(ButtonRingZone)))
@@ -120,10 +122,10 @@ namespace MychIO.Device
         public override void ReadData(ReadOnlySpan<byte> data)
         {
             // Check if the state has changed
-            if (ByteArraysEqual(_currentState, data))
-            {
-                return;
-            }
+            //if (ByteArraysEqual(_currentState, data))
+            //{
+            //    return;
+            //}
             /*
                 // bit shift right -> off
                 BA3  -> byte 3, position 0 OFF
@@ -176,15 +178,70 @@ namespace MychIO.Device
             // coin -> byte 0 (00000001)
             if (_currentState[0] != data[0])
             {
-                HandleInputChangeInternal(
-                    ButtonRingZone.InsertCoin,
-                    data[0],
-                    LEAST_SIGNIFICANT_BIT
-                );
+                HandleInputChangeInternal(ButtonRingZone.InsertCoin, data[0], LEAST_SIGNIFICANT_BIT);
             }
 
             data.CopyTo(_currentState);
             //_currentState = currentInput;
+        }
+        public override void ReadDataWithDebounce(ReadOnlySpan<byte> data)
+        {
+            /*
+                // bit shift right -> off
+                BA3  -> byte 3, position 0 OFF
+                up  -> byte 3, position 1 ON
+                BA1 -> byte 3, position 2 OFF
+                BA2 -> byte 3, position 3 OFF
+                // bit shift left -> on (new number)
+                down -> byte 3, position 1 ON
+            */
+            if (_currentState[3] != data[3])
+            {
+                var InvertedByte3 = (byte)~data[3];
+                DebounceHandle<ButtonRingZone, byte, byte>(ButtonRingZone.BA3, _debounceCallbackHandler, ButtonRingZone.BA3, InvertedByte3, LEAST_SIGNIFICANT_BIT);
+
+                DebounceHandle<ButtonRingZone, byte, byte>(ButtonRingZone.ArrowUp, _debounceCallbackHandler, ButtonRingZone.ArrowUp, data[3], 0b00000010);
+
+                DebounceHandle<ButtonRingZone, byte, byte>(ButtonRingZone.BA1, _debounceCallbackHandler, ButtonRingZone.BA1, InvertedByte3, 0b00000100);
+
+                DebounceHandle<ButtonRingZone, byte, byte>(ButtonRingZone.BA2, _debounceCallbackHandler, ButtonRingZone.BA2, InvertedByte3, 0b00001000);
+
+                DebounceHandle<ButtonRingZone, byte, byte>(ButtonRingZone.ArrowDown, _debounceCallbackHandler, ButtonRingZone.ArrowDown, data[3], 0b01000000);
+            }
+
+            /*
+            // bit shift left -> off
+                BA4  -> byte 4, position 0 OFF
+                BA5  -> byte 4, position 1 OFF
+                BA6  -> byte 4, position 2 OFF
+                BA7  -> byte 4, position 3 OFF
+                BA8  -> byte 4, position 4 OFF
+                Select -> byte 4, position 6 ON
+            */
+            if (_currentState[4] != data[3])
+            {
+                var InvertedByte4 = (byte)~data[4];
+
+                DebounceHandle<ButtonRingZone, byte, byte>(ButtonRingZone.BA4, _debounceCallbackHandler, ButtonRingZone.BA4, InvertedByte4, MOST_SIGNIFICANT_BIT);
+
+                DebounceHandle<ButtonRingZone, byte, byte>(ButtonRingZone.BA5, _debounceCallbackHandler, ButtonRingZone.BA5, InvertedByte4, 0b01000000);
+
+                DebounceHandle<ButtonRingZone, byte, byte>(ButtonRingZone.BA6, _debounceCallbackHandler, ButtonRingZone.BA6, InvertedByte4, 0b00100000);
+
+                DebounceHandle<ButtonRingZone, byte, byte>(ButtonRingZone.BA7, _debounceCallbackHandler, ButtonRingZone.BA7, InvertedByte4, 0b00010000);
+
+                DebounceHandle<ButtonRingZone, byte, byte>(ButtonRingZone.BA8, _debounceCallbackHandler, ButtonRingZone.BA8, InvertedByte4, 0b00001000);
+
+                DebounceHandle<ButtonRingZone, byte, byte>(ButtonRingZone.Select, _debounceCallbackHandler, ButtonRingZone.Select, data[4], 0b00000010);
+            }
+
+            // coin -> byte 0 (00000001)
+            if (_currentState[0] != data[0])
+            {
+                DebounceHandle<ButtonRingZone, byte, byte>(ButtonRingZone.InsertCoin, _debounceCallbackHandler, ButtonRingZone.InsertCoin, data[0], LEAST_SIGNIFICANT_BIT);
+            }
+
+            data.CopyTo(_currentState);
         }
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         private bool HandleInputChangeInternal(ButtonRingZone zone, byte input, byte mask)

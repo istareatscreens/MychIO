@@ -1,6 +1,7 @@
 using System;
 using System.Collections.Generic;
 using System.Linq;
+using System.Reflection;
 using System.Runtime.CompilerServices;
 using System.Threading.Tasks;
 using MychIO.Connection;
@@ -68,6 +69,7 @@ namespace MychIO.Device
         };
         private byte[] _currentState = new byte[BYTES_TO_READ];
         private IDictionary<ButtonRingZone, bool> _currentActiveStates;
+        readonly DebounceCallbackHandler<ButtonRingZone, byte> _debounceCallbackHandler;
         public static readonly IDictionary<ButtonRingCommand, byte[]> Commands = new Dictionary<ButtonRingCommand, byte[]> { };
 
         public AdxHIDButtonRing(
@@ -76,6 +78,7 @@ namespace MychIO.Device
             IOManager manager = null
         ) : base(inputSubscriptions, connectionProperties, manager)
         {
+            _debounceCallbackHandler = HandleInputChangeInternal;
             NO_INPUT_PACKET.CopyTo(_currentState);
             // current states
             _currentActiveStates = new Dictionary<ButtonRingZone, bool>();
@@ -117,10 +120,10 @@ namespace MychIO.Device
         public override void ReadData(ReadOnlySpan<byte> data)
         {
             // Check if the state has changed
-            if (ByteArraysEqual(_currentState, data))
-            {
-                return;
-            }
+            //if (ByteArraysEqual(_currentState, data))
+            //{
+            //    return;
+            //}
 
             HandleInputChangeInternal(ButtonRingZone.BA3, data[1]);
             HandleInputChangeInternal(ButtonRingZone.ArrowUp, data[8]);
@@ -134,6 +137,51 @@ namespace MychIO.Device
             HandleInputChangeInternal(ButtonRingZone.BA8, data[4]);
             HandleInputChangeInternal(ButtonRingZone.Select, data[9]);
             HandleInputChangeInternal(ButtonRingZone.InsertCoin, data[11]);
+
+            data.CopyTo(_currentState);
+        }
+        public unsafe override void ReadDataWithDebounce(IntPtr pointer)
+        {
+            /*
+                if the code below causes any crashes or issues it might be better to 
+                change this function to safe and copy the bytes this way.
+                This is much slower though:
+
+                byte[] currentInput = new byte[BYTES_TO_READ];
+
+                Marshal.Copy(pointer, currentInput, 0, BYTES_TO_READ);
+            **/
+            /** UNSAFE CODE */
+            if (pointer == IntPtr.Zero)
+            {
+                return;
+            }
+            Span<byte> fromDeviceData = new Span<byte>((void*)pointer, BYTES_TO_READ);
+            Span<byte> currentInput = stackalloc byte[BYTES_TO_READ];
+            fromDeviceData.CopyTo(currentInput);
+            ReadDataWithDebounce(currentInput);
+            /** UNSAFE CODE */
+        }
+        public override void ReadDataWithDebounce(ReadOnlySpan<byte> data)
+        {
+            // Check if the state has changed
+            //if (ByteArraysEqual(_currentState, data))
+            //{
+            //    return;
+            //}
+
+            DebounceHandle(ButtonRingZone.BA3, _debounceCallbackHandler, ButtonRingZone.BA3,data[1]);
+            DebounceHandle(ButtonRingZone.ArrowUp, _debounceCallbackHandler, ButtonRingZone.ArrowUp, data[8]);
+            DebounceHandle(ButtonRingZone.BA1, _debounceCallbackHandler, ButtonRingZone.BA1, data[3]);
+            DebounceHandle(ButtonRingZone.BA2, _debounceCallbackHandler, ButtonRingZone.BA2, data[2]);
+            DebounceHandle(ButtonRingZone.ArrowDown, _debounceCallbackHandler, ButtonRingZone.ArrowDown, data[10]);
+            DebounceHandle(ButtonRingZone.BA4, _debounceCallbackHandler, ButtonRingZone.BA4, data[0]);
+            DebounceHandle(ButtonRingZone.BA5, _debounceCallbackHandler, ButtonRingZone.BA5, data[7]);
+            DebounceHandle(ButtonRingZone.BA6, _debounceCallbackHandler, ButtonRingZone.BA6, data[6]);
+            DebounceHandle(ButtonRingZone.BA7, _debounceCallbackHandler, ButtonRingZone.BA7, data[5]);
+            DebounceHandle(ButtonRingZone.BA8, _debounceCallbackHandler, ButtonRingZone.BA8, data[4]);
+            DebounceHandle(ButtonRingZone.Select, _debounceCallbackHandler, ButtonRingZone.Select, data[9]);
+            DebounceHandle(ButtonRingZone.InsertCoin, _debounceCallbackHandler, ButtonRingZone.InsertCoin, data[11]);
 
             data.CopyTo(_currentState);
         }

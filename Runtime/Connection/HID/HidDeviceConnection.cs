@@ -144,7 +144,15 @@ namespace MychIO.Connection.HidDevice
 
         private UnityHidApiPlugin.DataCallbackDelegate GetRecieveDataFunction()
         {
-            return new UnityHidApiPlugin.DataCallbackDelegate(_device.ReadData);
+            var dt = _connectionProperties.GetDebounceThreshold();
+            if(dt.TotalMilliseconds > 0)
+            {
+                return new UnityHidApiPlugin.DataCallbackDelegate(_device.ReadDataWithDebounce);
+            }
+            else
+            {
+                return new UnityHidApiPlugin.DataCallbackDelegate(_device.ReadData);
+            }
         }
         public override void Disconnect()
         {

@@ -192,6 +192,12 @@ namespace MychIO.Device
         // just implement them in all devices objects
         public abstract void ReadData(ReadOnlySpan<byte> data);
         public abstract void ReadData(IntPtr data);
+        public virtual void ReadDataWithDebounce(ReadOnlyMemory<byte> data)
+        {
+            ReadDataWithDebounce(data.Span);
+        }
+        public abstract void ReadDataWithDebounce(ReadOnlySpan<byte> data);
+        public abstract void ReadDataWithDebounce(IntPtr intPtr);
         public abstract void Write<T>(params T[] interactions) where T : Enum;
         public abstract Task WriteAsync<T>(params T[] interactions) where T : Enum;
         // source: https://stackoverflow.com/a/48599119

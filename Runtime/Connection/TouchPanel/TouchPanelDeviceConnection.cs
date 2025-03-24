@@ -126,7 +126,15 @@ namespace MychIO.Connection.TouchPanelDevice
 
         private UnityTouchPanelApiPlugin.DataCallbackDelegate GetRecieveDataFunction()
         {
-            return new UnityTouchPanelApiPlugin.DataCallbackDelegate(_device.ReadData);
+            var dt = _connectionProperties.GetDebounceThreshold();
+            if(dt.TotalMilliseconds > 0)
+            {
+                return new UnityTouchPanelApiPlugin.DataCallbackDelegate(_device.ReadDataWithDebounce);
+            }
+            else
+            {
+                return new UnityTouchPanelApiPlugin.DataCallbackDelegate(_device.ReadData);
+            }
         }
         public override void Disconnect()
         {

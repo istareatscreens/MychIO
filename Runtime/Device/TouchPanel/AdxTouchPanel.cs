@@ -71,6 +71,12 @@ namespace MychIO.Device
         // Settings for microoptimization
         public const int BYTES_TO_READ = 9;
 
+        const int BIT_1ST_MASK = 0b00000001;
+        const int BIT_2ND_MASK = 0b00000010;
+        const int BIT_3RD_MASK = 0b00000100;
+        const int BIT_4TH_MASK = 0b00001000;
+        const int BIT_5TH_MASK = 0b00010000;
+
         // ** Connection Properties -- Required by factory: 
         public static new ConnectionType GetConnectionType() => ConnectionType.SerialDevice;
         public static new DeviceClassification GetDeviceClassification() => DeviceClassification.TouchPanel;
@@ -103,6 +109,7 @@ namespace MychIO.Device
         private byte[] _currentState = NO_INPUT_PACKET;
         //private byte[] _currentInput = new byte[BYTES_TO_READ];
         private IDictionary<TouchPanelZone, bool> _currentActiveStates;
+        readonly DebounceCallbackHandler<TouchPanelZone, byte, byte> _debounceCallbackHandler;
 
         public static readonly IDictionary<TouchPanelCommand, byte[][]> Commands = new Dictionary<TouchPanelCommand, byte[][]>
         {
@@ -117,6 +124,7 @@ namespace MychIO.Device
             IOManager manager = null
         ) : base(inputSubscriptions, connectionProperties, manager)
         {
+            _debounceCallbackHandler = HandleInputChangeInternal;
             // current states
             _currentActiveStates = new Dictionary<TouchPanelZone, bool>();
             foreach (TouchPanelZone zone in Enum.GetValues(typeof(TouchPanelZone)))
@@ -165,11 +173,6 @@ namespace MychIO.Device
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public override void ReadData(ReadOnlySpan<byte> data)
         {
-            const int BIT_1ST_MASK = 0b00000001;
-            const int BIT_2ND_MASK = 0b00000010;
-            const int BIT_3RD_MASK = 0b00000100;
-            const int BIT_4TH_MASK = 0b00001000;
-            const int BIT_5TH_MASK = 0b00010000;
             // ensure buffer is aligned
             var headIndexs = GetPacketHeadIndexs(stackalloc int[data.Length], data);
 
@@ -197,7 +200,41 @@ namespace MychIO.Device
                 packet.CopyTo(_currentState);
             }
         }
+        public override void ReadDataWithDebounce(ReadOnlySpan<byte> data)
+        {
+            // ensure buffer is aligned
+            var headIndexs = GetPacketHeadIndexs(stackalloc int[data.Length], data);
 
+            if (headIndexs.IsEmpty)
+                return;
+            for (var i = 0; i < headIndexs.Length; i++)
+            {
+                var headIndex = headIndexs[i];
+                if (headIndex + BYTES_TO_READ > data.Length)
+                    return;
+                var packet = data.Slice(headIndexs[i], BYTES_TO_READ);
+                var tail = packet[BYTES_TO_READ - 1];
+                if (tail != ')')
+                    continue;
+
+                for (var j = 1; j < 7; j++)
+                {
+                    var @byte = packet[j];
+                    var zone1 = (TouchPanelZone)(0 + ((j - 1) * 5));
+                    var zone2 = (TouchPanelZone)(0 + ((j - 1) * 5));
+                    var zone3 = (TouchPanelZone)(0 + ((j - 1) * 5));
+                    var zone4 = (TouchPanelZone)(0 + ((j - 1) * 5));
+                    var zone5 = (TouchPanelZone)(0 + ((j - 1) * 5));
+
+                    DebounceHandle<TouchPanelZone, byte, byte>(zone1, _debounceCallbackHandler, zone1, @byte, BIT_1ST_MASK);
+                    DebounceHandle<TouchPanelZone, byte, byte>(zone2, _debounceCallbackHandler, zone1, @byte, BIT_2ND_MASK);
+                    DebounceHandle<TouchPanelZone, byte, byte>(zone3, _debounceCallbackHandler, zone1, @byte, BIT_3RD_MASK);
+                    DebounceHandle<TouchPanelZone, byte, byte>(zone4, _debounceCallbackHandler, zone1, @byte, BIT_4TH_MASK);
+                    DebounceHandle<TouchPanelZone, byte, byte>(zone5, _debounceCallbackHandler, zone1, @byte, BIT_5TH_MASK);
+                }
+                packet.CopyTo(_currentState);
+            }
+        }
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         private bool HandleInputChangeInternal(TouchPanelZone zone, byte input, byte mask)
         {
@@ -208,7 +245,7 @@ namespace MychIO.Device
             var newState = (input & mask) != 0;
             var callback = _inputSubscriptions[zone];
             callback(zone,
-                     newState ? InputState.Off : InputState.On);
+                     newState ? InputState.On : InputState.Off);
             _currentActiveStates[zone] = newState;
             return newState != currentState;
         }
@@ -266,7 +303,11 @@ namespace MychIO.Device
         // Not used
         public override void ReadData(IntPtr intPtr)
         {
-            throw new NotImplementedException();
+            ThrowHelper.NotImplemented();
+        }
+        public override void ReadDataWithDebounce(IntPtr intPtr)
+        {
+            ThrowHelper.NotImplemented();
         }
 
         public override void OnDisconnected()
