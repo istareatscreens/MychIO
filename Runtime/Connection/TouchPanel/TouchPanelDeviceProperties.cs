@@ -8,7 +8,7 @@ namespace MychIO.Connection.TouchPanelDevice
         public TouchPanelDeviceProperties(
             int pollingRateMs = 2,
             int? debounceTimeMs = 0
-        )
+        ) : base(debounceTimeMs ?? 0)
         {
             PollingRateMs = pollingRateMs;
             PopulatePropertiesFromFields();
@@ -17,8 +17,9 @@ namespace MychIO.Connection.TouchPanelDevice
         // Copy Constructor used for creating properties objects from default properties
         public TouchPanelDeviceProperties(
             TouchPanelDeviceProperties existing,
-            int? pollingRateMs = null
-        )
+            int? pollingRateMs = null,
+            int? debounceTimeMs = 0
+        ) : base(debounceTimeMs ?? existing.DebounceTimeMs)
         {
             PollingRateMs = pollingRateMs ?? existing.PollingRateMs;
             PopulatePropertiesFromFields();

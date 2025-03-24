@@ -30,6 +30,13 @@ namespace MychIO.Connection
         private Queue<string> _errors = new();
         private IDictionary<string, dynamic> _properties = new Dictionary<string, dynamic>();
 
+        public int DebounceTimeMs = 0;
+
+        public ConnectionProperties(int debounceTimeMs = 0)
+        {
+            DebounceTimeMs = debounceTimeMs;
+        }
+
         public IConnectionProperties UpdateProperties(IDictionary<string, dynamic> updateProperties)
         {
             _properties = MergeProperties(_properties, updateProperties);
@@ -85,6 +92,10 @@ namespace MychIO.Connection
                     _errors.Enqueue($"Failed to apply property: {field.Name} on {GetType().Name},{field.Name},{GetType().Name}");
                 }
             }
+        }
+        public TimeSpan GetDebounceThreshold()
+        {
+            return TimeSpan.FromMilliseconds(DebounceTimeMs);
         }
     }
 }

@@ -38,7 +38,8 @@ namespace MychIO.Device
         {
             get => _connectionProperties;
         }
-
+        protected delegate bool DebounceCallbackHandler<TParam1, TParam2>(TParam1 param1, TParam2 param2);
+        protected delegate bool DebounceCallbackHandler<TParam1, TParam2, TParam3>(TParam1 param1, TParam2 param2, TParam3 param3);
         protected const byte MOST_SIGNIFICANT_BIT = 0b10000000;
         protected const byte LEAST_SIGNIFICANT_BIT = 0b00000001;
         private string _id;
@@ -47,7 +48,9 @@ namespace MychIO.Device
             get => _id;
             set => _id = value;
         }
-
+        readonly Dictionary<TZone, TimeSpan> _lastInputTriggerTimes = new();
+        readonly TimeSpan _debounceThreshold = TimeSpan.Zero;
+        readonly Stopwatch _timeProvider = new Stopwatch();
         protected readonly IOManager _manager;
         protected readonly IConnectionProperties _connectionProperties;
         protected IDictionary<TZone, Action<TZone, TState>> _inputSubscriptions;
@@ -84,6 +87,12 @@ namespace MychIO.Device
                 manager.handleEvent(Event.IOEventType.InvalidDevicePropertyError, _classification, error);
             }
 
+            _debounceThreshold = _connectionProperties.GetDebounceThreshold();
+            foreach(TZone zone in Enum.GetValues(typeof(TZone)))
+            {
+                _lastInputTriggerTimes[zone] = TimeSpan.Zero;
+            }
+
             // Connect
             _connection = ConnectionFactory.GetConnection(this, _connectionProperties, manager);
             Id = _connectionProperties.Id;
@@ -105,6 +114,7 @@ namespace MychIO.Device
         {
             var task = ConnectAsync();
             task.Wait();
+            _timeProvider.Restart();
             return task.Result;
         }
         public async Task<IDevice> ConnectAsync()
@@ -204,6 +214,52 @@ namespace MychIO.Device
             }
 
             return typedDictionary;
+        }
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        protected void DebounceHandle<TParam1, TParam2>(TZone zone,
+                                                        DebounceCallbackHandler<TParam1, TParam2> callback,
+                                                        TParam1 param1, 
+                                                        TParam2 param2)
+        {
+            var now = TimeSpan.FromTicks(_timeProvider.ElapsedTicks);
+            if (DebounceCore(zone, now))
+            {
+                return;
+            }
+            if (callback(param1, param2))
+            {
+                _lastInputTriggerTimes[zone] = now;
+            }
+        }
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        protected void DebounceHandle<TParam1, TParam2, TParam3>(TZone zone,
+                                                                 DebounceCallbackHandler<TParam1, TParam2, TParam3> callback,
+                                                                 TParam1 param1,
+                                                                 TParam2 param2, 
+                                                                 TParam3 param3)
+        {
+            var now = TimeSpan.FromTicks(_timeProvider.ElapsedTicks);
+            if (DebounceCore(zone, now))
+            {
+                return;
+            }
+            if (callback(param1, param2, param3))
+            {
+                _lastInputTriggerTimes[zone] = now;
+            }
+        }
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        /// <summary>
+        /// If it is within the debounce threshold, return true, otherwise return false
+        /// </summary>
+        /// <param name="zone"></param>
+        /// <returns></returns>
+        bool DebounceCore(TZone zone, TimeSpan now)
+        {
+            var lastTriggerTime = _lastInputTriggerTimes[zone];
+            var diff = now - lastTriggerTime;
+
+            return diff < _debounceThreshold;
         }
     }
 }

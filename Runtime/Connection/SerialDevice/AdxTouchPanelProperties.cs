@@ -25,8 +25,9 @@ namespace MychIO.Connection.SerialDevice
             bool dtr = false,
             bool rts = false,
             bool sensitivityOverride = false,
-            int sensitivity = 0
-        ): base(comPortNumber,
+            int sensitivity = 0,
+            int? debounceTimeMs = 0
+        ) : base(comPortNumber,
             pollingRateMs, 
             bufferByteLength, 
             writeTimeoutMS, 
@@ -37,7 +38,8 @@ namespace MychIO.Connection.SerialDevice
             dataBits, 
             handshake, 
             dtr,
-            rts)
+            rts,
+            debounceTimeMs)
         {
             SensitivityOverride = sensitivityOverride;
             Sensitivity = sensitivity;
@@ -59,7 +61,8 @@ namespace MychIO.Connection.SerialDevice
             bool? dtr = false,
             bool? rts = false,
             bool? sensitivityOverride = false,
-            int? sensitivity = 0
+            int? sensitivity = 0,
+            int? debounceTimeMs = 0
         ) : base(existing,
             comPortNumber,
             pollingRateMs,
@@ -72,7 +75,8 @@ namespace MychIO.Connection.SerialDevice
             dataBits,
             handshake,
             dtr,
-            rts)
+            rts,
+            debounceTimeMs)
         {
             SensitivityOverride = sensitivityOverride ?? existing.SensitivityOverride;
             Sensitivity = sensitivity ?? existing.Sensitivity;

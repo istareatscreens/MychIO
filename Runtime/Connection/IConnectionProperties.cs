@@ -11,5 +11,6 @@ namespace MychIO.Connection
         IConnectionProperties UpdateProperties(IDictionary<string, dynamic> updateProperties);
         // Used internally to store read errors
         IEnumerable<string> Errors { get; }
+        TimeSpan GetDebounceThreshold();
     }
 }
