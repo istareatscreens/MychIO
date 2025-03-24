@@ -50,6 +50,9 @@ namespace MychIO.Connection.HidDevice
         }
 
 
-        public override ConnectionType GetConnectionType() => ConnectionType.SerialDevice;
+        public override ConnectionType ConnectionType
+        {
+            get => ConnectionType.SerialDevice;
+        }
     }
 }

@@ -54,7 +54,18 @@ namespace MychIO.Device
              0b10000001, TouchPanelZone.D8 
              ...
         */
-
+        public override string Name
+        {
+            get => DEVICE_NAME;
+        }
+        public override bool CanRead
+        {
+            get => true;
+        }
+        public override bool CanWrite
+        {
+            get => true;
+        }
         public const string DEVICE_NAME = "AdxTouchPanel";
 
         // Settings for microoptimization
@@ -64,7 +75,6 @@ namespace MychIO.Device
         public static new ConnectionType GetConnectionType() => ConnectionType.SerialDevice;
         public static new DeviceClassification GetDeviceClassification() => DeviceClassification.TouchPanel;
         public static new string GetDeviceName() => DEVICE_NAME;
-        public override string DeviceName() => DEVICE_NAME;
         public static new IConnectionProperties GetDefaultConnectionProperties() => new AdxTouchPanelProperties(
             comPortNumber: "COM3",
             writeTimeoutMS: SerialDeviceProperties.DEFAULT_WRITE_TIMEOUT_MS,
@@ -115,7 +125,7 @@ namespace MychIO.Device
             }
         }
 
-        public override async Task OnStartWrite()
+        public override async Task OnConnected()
         {
             await Write(TouchPanelCommand.Reset, TouchPanelCommand.Halt);
             // Calibration
@@ -124,7 +134,7 @@ namespace MychIO.Device
                 await _connection.Write(Encoding.UTF8.GetBytes("{L" + (char)a + "r2}"));
             }
             dynamic sens = 0;
-            var connProperties = _connectionProperties.GetProperties();
+            var connProperties = _connectionProperties.Properties;
             var sensitivityOverride = connProperties.TryGetValue("SensitivityOverride", out var _sensitivityOverride) &&
                                       connProperties.TryGetValue("Sensitivity", out sens) && _sensitivityOverride;
             if (sensitivityOverride)
@@ -284,7 +294,7 @@ namespace MychIO.Device
         {
             throw new NotImplementedException();
         }
-        public override Task OnDisconnectWrite()
+        public override Task OnDisconnected()
         {
             return Task.CompletedTask;
         }

@@ -14,6 +14,18 @@ namespace MychIO.Device
 {
     public class AdxLedDevice : Device<LedInteractions, InputState, SerialDeviceProperties>
     {
+        public override string Name
+        {
+            get => DEVICE_NAME;
+        }
+        public override bool CanRead
+        {
+            get => false;
+        }
+        public override bool CanWrite
+        {
+            get => true;
+        }
         public const string DEVICE_NAME = "AdxLedDevice";
 
         // Settings for microoptimization
@@ -23,7 +35,6 @@ namespace MychIO.Device
         public static new ConnectionType GetConnectionType() => ConnectionType.SerialDevice;
         public static new DeviceClassification GetDeviceClassification() => DeviceClassification.LedDevice;
         public static new string GetDeviceName() => DEVICE_NAME;
-        public override string DeviceName() => DEVICE_NAME;
         public static new IConnectionProperties GetDefaultConnectionProperties() => new SerialDeviceProperties(
             comPortNumber: "COM21",
             writeTimeoutMS: SerialDeviceProperties.DEFAULT_WRITE_TIMEOUT_MS,
@@ -131,7 +142,7 @@ namespace MychIO.Device
             }
         }
 
-        public override async Task OnStartWrite()
+        public override async Task OnConnected()
         {
             // Establish connection with LED device
             foreach (var command in new byte[][]{
@@ -147,7 +158,7 @@ namespace MychIO.Device
 
         }
 
-        public async override Task OnDisconnectWrite()
+        public async override Task OnDisconnected()
         {
             await Write(LedCommand.ClearAll);
         }

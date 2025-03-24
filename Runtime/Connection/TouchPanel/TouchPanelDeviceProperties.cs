@@ -24,6 +24,9 @@ namespace MychIO.Connection.TouchPanelDevice
             PopulatePropertiesFromFields();
         }
 
-        public override ConnectionType GetConnectionType() => ConnectionType.TouchPanelDevice;
+        public override ConnectionType ConnectionType
+        {
+            get => ConnectionType.TouchPanelDevice;
+        }
     }
 }

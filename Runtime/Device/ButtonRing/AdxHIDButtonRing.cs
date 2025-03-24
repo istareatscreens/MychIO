@@ -26,7 +26,18 @@ namespace MychIO.Device
             down:       11
             coin:       12
         */
-
+        public override string Name
+        {
+            get => DEVICE_NAME;
+        }
+        public override bool CanRead
+        {
+            get => true;
+        }
+        public override bool CanWrite
+        {
+            get => false;
+        }
         public const string DEVICE_NAME = "AdxHIDButtonRing";
         // Rather hardcode it here for micro optimization if you need different 
         // settings just copy this class and change these values
@@ -38,7 +49,6 @@ namespace MychIO.Device
         public static new ConnectionType GetConnectionType() => ConnectionType.HID;
         public static new DeviceClassification GetDeviceClassification() => DeviceClassification.ButtonRing;
         public static new string GetDeviceName() => DEVICE_NAME;
-        public override string DeviceName() => DEVICE_NAME;
         public static new IConnectionProperties GetDefaultConnectionProperties() => new HidDeviceProperties(
             vendorId: 0x2e3c,
             productId: 0x5750,
@@ -156,14 +166,14 @@ namespace MychIO.Device
         // Not used
         public override Task Write<T>(params T[] interactions)
         {
-            return Task.CompletedTask;
+            return ThrowHelper.NotSupported<Task>();
         }
-        public override Task OnStartWrite()
+        public override Task OnConnected()
         {
             return Task.CompletedTask;
         }
         public override void ReadData(byte[] data) { }
-        public override Task OnDisconnectWrite()
+        public override Task OnDisconnected()
         {
             return Task.CompletedTask;
         }

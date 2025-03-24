@@ -71,7 +71,7 @@ namespace MychIO
                     _deviceClassificationToDevice.Values.ToArray(),
                     this
                 );
-                _deviceClassificationToDevice.Add(device.GetClassification(), device);
+                _deviceClassificationToDevice.Add(device.Classification, device);
 
                 // Save for reloading
                 _tagToDeviceClassificationToDeviceInputAction[STANDARD_INPUT] =
@@ -155,7 +155,7 @@ namespace MychIO
 
         public async Task WriteToDevice<T>(DeviceClassification deviceClassification, params T[] command) where T:Enum
         {
-            if (_deviceClassificationToDevice.TryGetValue(deviceClassification, out var device) && device.IsConnected())
+            if (_deviceClassificationToDevice.TryGetValue(deviceClassification, out var device) && device.IsConnected)
             {
                 await device.Write(command);
             }
@@ -296,7 +296,7 @@ namespace MychIO
         {
             if (_deviceClassificationToDevice.TryGetValue(deviceClassification, out var device))
             {
-                return device?.IsReading() ?? false;
+                return device?.IsReading ?? false;
             }
             return false;
         }
@@ -305,7 +305,7 @@ namespace MychIO
         {
             if (_deviceClassificationToDevice.TryGetValue(deviceClassification, out var device))
             {
-                return device?.IsConnected() ?? false;
+                return device?.IsConnected ?? false;
             }
             return false;
         }
@@ -328,8 +328,8 @@ namespace MychIO
                     case DeviceClassification.TouchPanel:
                         var touchPanelDevice = (IDevice<TouchPanelZone, InputState>)device;
                         AddDeviceByName(
-                            touchPanelDevice.DeviceName(),
-                            touchPanelDevice.GetConnectionProperties().GetProperties(),
+                            touchPanelDevice.Name,
+                            touchPanelDevice.ConnectionProperties.Properties,
                             deviceClassification,
                             inputSubscriptions: deviceInputActions
                         );
@@ -337,8 +337,8 @@ namespace MychIO
                     case DeviceClassification.ButtonRing:
                         var buttonRingDevice = (IDevice<ButtonRingZone, InputState>)device;
                         AddDeviceByName(
-                            buttonRingDevice.DeviceName(),
-                            buttonRingDevice.GetConnectionProperties().GetProperties(),
+                            buttonRingDevice.Name,
+                            buttonRingDevice.ConnectionProperties.Properties,
                             deviceClassification,
                             inputSubscriptions: deviceInputActions
                         );
@@ -346,8 +346,8 @@ namespace MychIO
                     case DeviceClassification.LedDevice:
                         var ledDevice = (IDevice<LedInteractions, LedMessage>)device;
                         AddDeviceByName(
-                            ledDevice.DeviceName(),
-                            ledDevice.GetConnectionProperties().GetProperties(),
+                            ledDevice.Name,
+                            ledDevice.ConnectionProperties.Properties,
                             deviceClassification,
                             inputSubscriptions: deviceInputActions
                         );
@@ -392,7 +392,7 @@ namespace MychIO
                 return null;
             }
 
-            return device.GetConnectionProperties().GetProperties();
+            return device.ConnectionProperties.Properties;
         }
 
         // Events

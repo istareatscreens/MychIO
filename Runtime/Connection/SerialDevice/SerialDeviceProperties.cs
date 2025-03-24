@@ -80,6 +80,9 @@ namespace MychIO.Connection.SerialDevice
             PopulatePropertiesFromFields();
         }
 
-        public override ConnectionType GetConnectionType() => ConnectionType.SerialDevice;
+        public override ConnectionType ConnectionType
+        {
+            get => ConnectionType.SerialDevice;
+        }
     }
 }

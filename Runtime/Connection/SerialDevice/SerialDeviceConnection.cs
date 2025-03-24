@@ -10,7 +10,15 @@ namespace MychIO.Connection.SerialDevice
 {
     public class SerialDeviceConnection : Connection
     {
+        public override bool IsConnected
+        {
+            get => _serialPort?.IsOpen ?? false;
+        }
 
+        public override bool IsReading
+        {
+            get => !_cancellationTokenSource.Token.IsCancellationRequested;
+        }
         private SerialPort _serialPort;
         private int _pollTimeoutMs;
         private int _bufferByteLength;
@@ -22,7 +30,7 @@ namespace MychIO.Connection.SerialDevice
 
         private void OnDestroy()
         {
-            _device?.OnDisconnectWrite();
+            _device?.OnDisconnected();
         }
 
         public new static ConnectionType GetConnectionType() => ConnectionType.SerialDevice;
@@ -30,7 +38,7 @@ namespace MychIO.Connection.SerialDevice
         public override Task Connect()
         {
 
-            if (IsConnected())
+            if (IsConnected)
             {
                 // TODO: Set event here
                 return Task.CompletedTask;
@@ -61,19 +69,19 @@ namespace MychIO.Connection.SerialDevice
             // https://stackoverflow.com/questions/13408476/detecting-when-a-serialport-gets-disconnected
             _serialPort.Open();
 
-            if (!IsConnected())
+            if (!IsConnected)
             {
-                _manager.handleEvent(IOEventType.ConnectionError, _device.GetClassification(), _device.GetType().ToString() + " Device lost COM port connection");
+                _manager.handleEvent(IOEventType.ConnectionError, _device.Classification, _device.GetType().ToString() + " Device lost COM port connection");
                 return Task.CompletedTask;
             }
 
             Task.Run(async () =>
             {
-                await _device.OnStartWrite();
+                await _device.OnConnected();
                 await ReceiveData(GetRecieveDataFunction());
             });
 
-            _manager.handleEvent(IOEventType.Attach, _device.GetClassification(), _device.GetType().ToString() + " Device connected");
+            _manager.handleEvent(IOEventType.Attach, _device.Classification, _device.GetType().ToString() + " Device connected");
 
             return Task.CompletedTask;
         }
@@ -105,7 +113,7 @@ namespace MychIO.Connection.SerialDevice
             catch (Exception e)
             {
                 // Throw event here potentially in the future for now just disconnect
-                _manager.handleEvent(IOEventType.ConnectionError, _device.GetClassification(), _device.GetType().ToString() + "device connection failed due to following exception: " + e);
+                _manager.handleEvent(IOEventType.ConnectionError, _device.Classification, _device.GetType().ToString() + "device connection failed due to following exception: " + e);
                 await Disconnect();
             }
         }
@@ -118,22 +126,17 @@ namespace MychIO.Connection.SerialDevice
         public override async Task Disconnect()
         {
             _device.ResetState();
-            if (IsReading())
+            if (IsReading)
             {
                 StopReadPolling();
             }
-            if (IsConnected())
+            if (IsConnected)
             {
-                await _device.OnDisconnectWrite();
+                await _device.OnDisconnected();
                 _serialPort?.Close();
             }
             _serialPort = null;
-            _manager.handleEvent(IOEventType.Detach, _device.GetClassification(), _device.GetType().ToString() + "device disconnected");
-        }
-
-        public override bool IsConnected()
-        {
-            return _serialPort?.IsOpen ?? false;
+            _manager.handleEvent(IOEventType.Detach, _device.Classification, _device.GetType().ToString() + "device disconnected");
         }
 
         public async override Task Write(byte[] data)
@@ -148,20 +151,15 @@ namespace MychIO.Connection.SerialDevice
               ((SerialDeviceProperties)_connectionProperties).ComPortNumber;
         }
 
-        public override bool IsReading()
-        {
-            return !_cancellationTokenSource.Token.IsCancellationRequested;
-        }
-
         public override void Read()
         {
-            if (!IsReading())
+            if (!IsReading)
             {
                 _cancellationTokenSource.Dispose(); // Dispose the old one if it's not null
                 _cancellationTokenSource = new CancellationTokenSource();
                 Task.Run(async () =>
                 {
-                    await _device.OnStartWrite();
+                    await _device.OnConnected();
                     await ReceiveData(GetRecieveDataFunction());
                 });
             }

@@ -9,7 +9,18 @@ namespace MychIO.Device.TouchPanel
 {
     public class TouchPanelTouchPanel : Device<TouchPanelZone, InputState, TouchPanelDeviceProperties>
     {
-
+        public override string Name
+        {
+            get => DEVICE_NAME;
+        }
+        public override bool CanRead
+        {
+            get => true;
+        }
+        public override bool CanWrite
+        {
+            get => true;
+        }
         public const string DEVICE_NAME = "TouchPanel";
 
         private const int MAX_TOUCH_POINTS = 10;
@@ -22,7 +33,6 @@ namespace MychIO.Device.TouchPanel
         public static new ConnectionType GetConnectionType() => ConnectionType.TouchPanelDevice;
         public static new DeviceClassification GetDeviceClassification() => DeviceClassification.TouchPanel;
         public static new string GetDeviceName() => DEVICE_NAME;
-        public override string DeviceName() => DEVICE_NAME;
         public static new IConnectionProperties GetDefaultConnectionProperties() => new TouchPanelDeviceProperties(
             pollingRateMs: 2
         );
@@ -114,14 +124,14 @@ namespace MychIO.Device.TouchPanel
         // Not used
         public override Task Write<T>(params T[] interactions)
         {
-            return Task.CompletedTask;
+            return ThrowHelper.NotSupported<Task>();
         }
-        public override Task OnStartWrite()
+        public override Task OnConnected()
         {
             return Task.CompletedTask;
         }
         public override void ReadData(byte[] data) { }
-        public override Task OnDisconnectWrite()
+        public override Task OnDisconnected()
         {
             return Task.CompletedTask;
         }

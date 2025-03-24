@@ -11,9 +11,24 @@ namespace MychIO.Connection
     public abstract class ConnectionProperties : IConnectionProperties
     {
         public string Id { get; private set; }
+        public IEnumerable<string> Errors
+        {
+            get
+            {
+                while (0 < _errors.Count)
+                {
+                    yield return _errors.Dequeue();
+                }
+            }
+        }
+        public IDictionary<string, dynamic> Properties
+        {
+            get => _properties;
+        }
+        public abstract ConnectionType ConnectionType { get; }
+
         private Queue<string> _errors = new();
         private IDictionary<string, dynamic> _properties = new Dictionary<string, dynamic>();
-        public IDictionary<string, dynamic> GetProperties() => _properties;
 
         public IConnectionProperties UpdateProperties(IDictionary<string, dynamic> updateProperties)
         {
@@ -22,7 +37,6 @@ namespace MychIO.Connection
             Id = _properties.TryGetValue("Id", out var id) && id is string v ? v : Guid.NewGuid().ToString();
             return this;
         }
-
         protected static IDictionary<string, dynamic> MergeProperties(
             IDictionary<string, dynamic> overWrittenProperties, IDictionary<string, dynamic> updateProperties)
         {
@@ -33,7 +47,6 @@ namespace MychIO.Connection
             }
             return result;
         }
-
         protected void PopulatePropertiesFromFields()
         {
             var fields = GetType().GetFields(BindingFlags.Public | BindingFlags.Instance | BindingFlags.FlattenHierarchy);
@@ -54,7 +67,6 @@ namespace MychIO.Connection
                 }
             }
         }
-
         protected void UpdateFieldsFromProperties()
         {
             var fields = GetType().GetFields(BindingFlags.Public | BindingFlags.Instance);
@@ -74,16 +86,5 @@ namespace MychIO.Connection
                 }
             }
         }
-
-        public IEnumerable<string> GetErrors()
-        {
-            while (0 < _errors.Count)
-            {
-                yield return _errors.Dequeue();
-            }
-        }
-
-        public abstract ConnectionType GetConnectionType();
-
     }
 }

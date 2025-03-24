@@ -4,7 +4,7 @@ using MychIO.Connection;
 
 namespace MychIO.Device
 {
-    public abstract partial class Device<T1, T2, T3> : IDevice<T1, T2> where T1 : Enum where T3 : IConnectionProperties where T2 : Enum
+    public abstract partial class Device<TZone, TState, TConnProps> : IDevice<TZone, TState> where TZone : Enum where TConnProps : IConnectionProperties where TState : Enum
     {
         // Properties used by DeviceFactory to construct the concrete class. These must be overridden via the new keyword! 
         public static ConnectionType GetConnectionType()
@@ -24,18 +24,15 @@ namespace MychIO.Device
             throw new NotImplementedException("Error GetDefaultConnectionProperties method not overwitten in base class");
         }
 
-        public static T3 GetDefaultDeviceProperties()
+        public static TConnProps GetDefaultDeviceProperties()
         {
             throw new NotImplementedException("Error GetDefaulDeviceProperties method not overwitten in base class");
         }
 
         public static Type GetDevicePropertiesType()
         {
-            return typeof(T3);
+            return typeof(TConnProps);
         }
-
-        public abstract string DeviceName();
-
         // Helper method to access these static methods
         private static MethodInfo GetBaseClassStaticMethod(string method, Type type)
         {

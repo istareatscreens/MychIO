@@ -8,7 +8,15 @@ namespace MychIO.Connection.TouchPanelDevice
 {
     public class TouchPanelDeviceConnection : Connection
     {
-
+        // Is Connected means its reading currently
+        public override bool IsConnected
+        {
+            get => UnityTouchPanelApiPlugin.IsConnected(_pluginHandle);
+        }
+        public override bool IsReading
+        {
+            get => UnityTouchPanelApiPlugin.IsReading(_pluginHandle);
+        }
         // Hold callbacks to prevent garbage collection
         private GCHandle _dataCallbackHandle;
         private GCHandle _eventCallbackHandle;
@@ -26,7 +34,7 @@ namespace MychIO.Connection.TouchPanelDevice
             {
                 manager.handleEvent(
                     IOEventType.ConnectionError,
-                        _device.GetClassification(),
+                        _device.Classification,
                         "Error loading UnityTouchPanelApiPlugin plugin"
                 );
             }
@@ -34,15 +42,15 @@ namespace MychIO.Connection.TouchPanelDevice
             // UnityTouchPanelApiPlugin.DisposeByClassification((int)device.GetClassification());
             TouchPanelDeviceProperties properties = (TouchPanelDeviceProperties)connectionProperties;
             _pluginHandle = UnityTouchPanelApiPlugin.Initialize(
-                (int)device.GetClassification(),
+                (int)device.Classification,
                 properties.PollingRateMs,
-                (string message) => { manager.handleEvent(IOEventType.ConnectionError, device.GetClassification(), message); }
+                (string message) => { manager.handleEvent(IOEventType.ConnectionError, device.Classification, message); }
             );
             if (_pluginHandle == IntPtr.Zero)
             {
                 manager.handleEvent(
                     IOEventType.ConnectionError,
-                    _device.GetClassification(),
+                    _device.Classification,
                     "Error Initializing Touch Panel Connection plugin, please recreate this device"
                 );
                 // This will destroy the initialized settings, TouchPanelDeviceConnection failed to initialize
@@ -68,7 +76,7 @@ namespace MychIO.Connection.TouchPanelDevice
             }
             try
             {
-                _device?.OnDisconnectWrite();
+                _device?.OnDisconnected();
             }
             catch { }
         }
@@ -90,13 +98,13 @@ namespace MychIO.Connection.TouchPanelDevice
             var eventReceivedCallback = new UnityTouchPanelApiPlugin.EventCallbackDelegate(
                 (string message) =>
                 {
-                    _manager.handleEvent(IOEventType.TouchPanelDeviceReadError, _device.GetClassification(), _device.GetType().ToString() + " Error: " + message);
+                    _manager.handleEvent(IOEventType.TouchPanelDeviceReadError, _device.Classification, _device.GetType().ToString() + " Error: " + message);
                 }
             );
 
             if (!UnityTouchPanelApiPlugin.Connect(_pluginHandle, eventReceivedCallback))
             {
-                _manager.handleEvent(IOEventType.ConnectionError, _device.GetClassification(), _device.GetType().ToString() + " Failed to Connect");
+                _manager.handleEvent(IOEventType.ConnectionError, _device.Classification, _device.GetType().ToString() + " Failed to Connect");
             }
 
             var dataReceivedCallback = GetRecieveDataFunction();
@@ -106,7 +114,7 @@ namespace MychIO.Connection.TouchPanelDevice
             _eventCallbackHandle = GCHandle.Alloc(eventReceivedCallback);
             Read();
 
-            _manager.handleEvent(IOEventType.Attach, _device.GetClassification(), _device.GetType().ToString() + " Device is running properly");
+            _manager.handleEvent(IOEventType.Attach, _device.Classification, _device.GetType().ToString() + " Device is running properly");
 
             return Task.CompletedTask;
 
@@ -119,18 +127,14 @@ namespace MychIO.Connection.TouchPanelDevice
 
         public override async Task Disconnect()
         {
-            if (IsConnected())
+            if (IsConnected)
             {
-                await _device.OnDisconnectWrite();
+                await _device.OnDisconnected();
             }
             UnityTouchPanelApiPlugin.Disconnect(_pluginHandle);
         }
 
-        // Is Connected means its reading currently
-        public override bool IsConnected()
-        {
-            return UnityTouchPanelApiPlugin.IsConnected(_pluginHandle);
-        }
+        
 
         // currently no need to write to HID devices so not implemented
         public override Task Write(byte[] bytes)
@@ -138,14 +142,11 @@ namespace MychIO.Connection.TouchPanelDevice
             return Task.CompletedTask;
         }
 
-        public override bool IsReading()
-        {
-            return UnityTouchPanelApiPlugin.IsReading(_pluginHandle);
-        }
+
 
         public override void Read()
         {
-            if (!IsReading() && _pluginHandle != null && _pluginHandle != IntPtr.Zero)
+            if (!IsReading && _pluginHandle != null && _pluginHandle != IntPtr.Zero)
             {
                 var dataCallback = (UnityTouchPanelApiPlugin.DataCallbackDelegate)_dataCallbackHandle.Target;
                 var eventCallback = (UnityTouchPanelApiPlugin.EventCallbackDelegate)_eventCallbackHandle.Target;
@@ -154,13 +155,13 @@ namespace MychIO.Connection.TouchPanelDevice
 
             if (!UnityTouchPanelApiPlugin.IsReading(_pluginHandle))
             {
-                _manager.handleEvent(IOEventType.ConnectionError, _device.GetClassification(), _device.GetType().ToString() + " Error: failed to start reading from device");
+                _manager.handleEvent(IOEventType.ConnectionError, _device.Classification, _device.GetType().ToString() + " Error: failed to start reading from device");
             }
         }
 
         public override void StopReading()
         {
-            if (IsReading())
+            if (IsReading)
             {
                 UnityTouchPanelApiPlugin.StopReading(_pluginHandle);
             }
