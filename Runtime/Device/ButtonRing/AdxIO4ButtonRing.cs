@@ -135,19 +135,16 @@ namespace MychIO.Device
                 // bit shift left -> on (new number)
                 down -> byte 3, position 1 ON
             */
-            if (_currentState[3] != data[3])
-            {
-                var InvertedByte3 = (byte)~data[3];
-                HandleInputChangeInternal(ButtonRingZone.BA3, InvertedByte3, LEAST_SIGNIFICANT_BIT);
+            var InvertedByte3 = (byte)~data[3];
+            HandleInputChangeInternal(ButtonRingZone.BA3, InvertedByte3, LEAST_SIGNIFICANT_BIT);
 
-                HandleInputChangeInternal(ButtonRingZone.ArrowUp, data[3], 0b00000010);
+            HandleInputChangeInternal(ButtonRingZone.ArrowUp, data[3], 0b00000010);
 
-                HandleInputChangeInternal(ButtonRingZone.BA1, InvertedByte3, 0b00000100);
+            HandleInputChangeInternal(ButtonRingZone.BA1, InvertedByte3, 0b00000100);
 
-                HandleInputChangeInternal(ButtonRingZone.BA2, InvertedByte3, 0b00001000);
+            HandleInputChangeInternal(ButtonRingZone.BA2, InvertedByte3, 0b00001000);
 
-                HandleInputChangeInternal(ButtonRingZone.ArrowDown, data[3], 0b01000000);
-            }
+            HandleInputChangeInternal(ButtonRingZone.ArrowDown, data[3], 0b01000000);
 
             /*
             // bit shift left -> off
@@ -158,31 +155,47 @@ namespace MychIO.Device
                 BA8  -> byte 4, position 4 OFF
                 Select -> byte 4, position 6 ON
             */
-            if (_currentState[4] != data[3])
-            {
-                var InvertedByte4 = (byte)~data[4];
+            var InvertedByte4 = (byte)~data[4];
 
-                HandleInputChangeInternal(ButtonRingZone.BA4, InvertedByte4, MOST_SIGNIFICANT_BIT);
+            HandleInputChangeInternal(ButtonRingZone.BA4, InvertedByte4, MOST_SIGNIFICANT_BIT);
 
-                HandleInputChangeInternal(ButtonRingZone.BA5, InvertedByte4, 0b01000000);
+            HandleInputChangeInternal(ButtonRingZone.BA5, InvertedByte4, 0b01000000);
 
-                HandleInputChangeInternal(ButtonRingZone.BA6, InvertedByte4, 0b00100000);
+            HandleInputChangeInternal(ButtonRingZone.BA6, InvertedByte4, 0b00100000);
 
-                HandleInputChangeInternal(ButtonRingZone.BA7, InvertedByte4, 0b00010000);
+            HandleInputChangeInternal(ButtonRingZone.BA7, InvertedByte4, 0b00010000);
 
-                HandleInputChangeInternal(ButtonRingZone.BA8, InvertedByte4, 0b00001000);
+            HandleInputChangeInternal(ButtonRingZone.BA8, InvertedByte4, 0b00001000);
 
-                HandleInputChangeInternal(ButtonRingZone.Select, data[4], 0b00000010);
-            }
+            HandleInputChangeInternal(ButtonRingZone.Select, data[4], 0b00000010);
 
             // coin -> byte 0 (00000001)
-            if (_currentState[0] != data[0])
-            {
-                HandleInputChangeInternal(ButtonRingZone.InsertCoin, data[0], LEAST_SIGNIFICANT_BIT);
-            }
+            HandleInputChangeInternal(ButtonRingZone.InsertCoin, data[0], LEAST_SIGNIFICANT_BIT);
 
             data.CopyTo(_currentState);
             //_currentState = currentInput;
+        }
+        public unsafe override void ReadDataWithDebounce(IntPtr pointer)
+        {
+            /*
+                if the code below causes any crashes or issues it might be better to 
+                change this function to safe and copy the bytes this way.
+                This is much slower though:
+
+                byte[] currentInput = new byte[BYTES_TO_READ];
+
+                Marshal.Copy(pointer, currentInput, 0, BYTES_TO_READ);
+            **/
+            /** UNSAFE CODE */
+            if (pointer == IntPtr.Zero)
+            {
+                return;
+            }
+            Span<byte> fromDeviceData = new Span<byte>((void*)pointer, BYTES_TO_READ);
+            Span<byte> currentInput = stackalloc byte[BYTES_TO_READ];
+            fromDeviceData.CopyTo(currentInput);
+            ReadDataWithDebounce(currentInput);
+            /** UNSAFE CODE */
         }
         public override void ReadDataWithDebounce(ReadOnlySpan<byte> data)
         {
@@ -195,19 +208,16 @@ namespace MychIO.Device
                 // bit shift left -> on (new number)
                 down -> byte 3, position 1 ON
             */
-            if (_currentState[3] != data[3])
-            {
-                var InvertedByte3 = (byte)~data[3];
-                DebounceHandle<ButtonRingZone, byte, byte>(ButtonRingZone.BA3, _debounceCallbackHandler, ButtonRingZone.BA3, InvertedByte3, LEAST_SIGNIFICANT_BIT);
+            var InvertedByte3 = (byte)~data[3];
+            DebounceHandle<ButtonRingZone, byte, byte>(ButtonRingZone.BA3, _debounceCallbackHandler, ButtonRingZone.BA3, InvertedByte3, LEAST_SIGNIFICANT_BIT);
 
-                DebounceHandle<ButtonRingZone, byte, byte>(ButtonRingZone.ArrowUp, _debounceCallbackHandler, ButtonRingZone.ArrowUp, data[3], 0b00000010);
+            DebounceHandle<ButtonRingZone, byte, byte>(ButtonRingZone.ArrowUp, _debounceCallbackHandler, ButtonRingZone.ArrowUp, data[3], 0b00000010);
 
-                DebounceHandle<ButtonRingZone, byte, byte>(ButtonRingZone.BA1, _debounceCallbackHandler, ButtonRingZone.BA1, InvertedByte3, 0b00000100);
+            DebounceHandle<ButtonRingZone, byte, byte>(ButtonRingZone.BA1, _debounceCallbackHandler, ButtonRingZone.BA1, InvertedByte3, 0b00000100);
 
-                DebounceHandle<ButtonRingZone, byte, byte>(ButtonRingZone.BA2, _debounceCallbackHandler, ButtonRingZone.BA2, InvertedByte3, 0b00001000);
+            DebounceHandle<ButtonRingZone, byte, byte>(ButtonRingZone.BA2, _debounceCallbackHandler, ButtonRingZone.BA2, InvertedByte3, 0b00001000);
 
-                DebounceHandle<ButtonRingZone, byte, byte>(ButtonRingZone.ArrowDown, _debounceCallbackHandler, ButtonRingZone.ArrowDown, data[3], 0b01000000);
-            }
+            DebounceHandle<ButtonRingZone, byte, byte>(ButtonRingZone.ArrowDown, _debounceCallbackHandler, ButtonRingZone.ArrowDown, data[3], 0b01000000);
 
             /*
             // bit shift left -> off
@@ -218,28 +228,22 @@ namespace MychIO.Device
                 BA8  -> byte 4, position 4 OFF
                 Select -> byte 4, position 6 ON
             */
-            if (_currentState[4] != data[3])
-            {
-                var InvertedByte4 = (byte)~data[4];
+            var InvertedByte4 = (byte)~data[4];
 
-                DebounceHandle<ButtonRingZone, byte, byte>(ButtonRingZone.BA4, _debounceCallbackHandler, ButtonRingZone.BA4, InvertedByte4, MOST_SIGNIFICANT_BIT);
+            DebounceHandle<ButtonRingZone, byte, byte>(ButtonRingZone.BA4, _debounceCallbackHandler, ButtonRingZone.BA4, InvertedByte4, MOST_SIGNIFICANT_BIT);
 
-                DebounceHandle<ButtonRingZone, byte, byte>(ButtonRingZone.BA5, _debounceCallbackHandler, ButtonRingZone.BA5, InvertedByte4, 0b01000000);
+            DebounceHandle<ButtonRingZone, byte, byte>(ButtonRingZone.BA5, _debounceCallbackHandler, ButtonRingZone.BA5, InvertedByte4, 0b01000000);
 
-                DebounceHandle<ButtonRingZone, byte, byte>(ButtonRingZone.BA6, _debounceCallbackHandler, ButtonRingZone.BA6, InvertedByte4, 0b00100000);
+            DebounceHandle<ButtonRingZone, byte, byte>(ButtonRingZone.BA6, _debounceCallbackHandler, ButtonRingZone.BA6, InvertedByte4, 0b00100000);
 
-                DebounceHandle<ButtonRingZone, byte, byte>(ButtonRingZone.BA7, _debounceCallbackHandler, ButtonRingZone.BA7, InvertedByte4, 0b00010000);
+            DebounceHandle<ButtonRingZone, byte, byte>(ButtonRingZone.BA7, _debounceCallbackHandler, ButtonRingZone.BA7, InvertedByte4, 0b00010000);
 
-                DebounceHandle<ButtonRingZone, byte, byte>(ButtonRingZone.BA8, _debounceCallbackHandler, ButtonRingZone.BA8, InvertedByte4, 0b00001000);
+            DebounceHandle<ButtonRingZone, byte, byte>(ButtonRingZone.BA8, _debounceCallbackHandler, ButtonRingZone.BA8, InvertedByte4, 0b00001000);
 
-                DebounceHandle<ButtonRingZone, byte, byte>(ButtonRingZone.Select, _debounceCallbackHandler, ButtonRingZone.Select, data[4], 0b00000010);
-            }
+            DebounceHandle<ButtonRingZone, byte, byte>(ButtonRingZone.Select, _debounceCallbackHandler, ButtonRingZone.Select, data[4], 0b00000010);
 
             // coin -> byte 0 (00000001)
-            if (_currentState[0] != data[0])
-            {
-                DebounceHandle<ButtonRingZone, byte, byte>(ButtonRingZone.InsertCoin, _debounceCallbackHandler, ButtonRingZone.InsertCoin, data[0], LEAST_SIGNIFICANT_BIT);
-            }
+            DebounceHandle<ButtonRingZone, byte, byte>(ButtonRingZone.InsertCoin, _debounceCallbackHandler, ButtonRingZone.InsertCoin, data[0], LEAST_SIGNIFICANT_BIT);
 
             data.CopyTo(_currentState);
         }
