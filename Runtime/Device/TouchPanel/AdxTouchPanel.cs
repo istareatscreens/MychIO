@@ -191,6 +191,8 @@ namespace MychIO.Device
                 for (var j = 1; j < 7; j++)
                 {
                     var @byte = packet[j];
+                    if (@byte == _currentState[j])
+                        continue;
                     HandleInputChangeInternal((TouchPanelZone)(0 + ((j - 1) * 5)), @byte, BIT_1ST_MASK);
                     HandleInputChangeInternal((TouchPanelZone)(1 + ((j - 1) * 5)), @byte, BIT_2ND_MASK);
                     HandleInputChangeInternal((TouchPanelZone)(2 + ((j - 1) * 5)), @byte, BIT_3RD_MASK);

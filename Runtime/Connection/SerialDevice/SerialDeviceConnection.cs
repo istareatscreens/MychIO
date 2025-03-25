@@ -177,6 +177,7 @@ namespace MychIO.Connection.SerialDevice
                         continue;
                     }
                     readDataCallback(buffer.Slice(0, read));
+                    token.ThrowIfCancellationRequested();
                 }
             }
             catch (TaskCanceledException)
