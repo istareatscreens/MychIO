@@ -241,13 +241,19 @@ namespace MychIO.Device
             if (zone > TouchPanelZone.E8 || zone < TouchPanelZone.A1)
                 return false;
 
-            var currentState = _currentActiveStates[zone];
+            var oldState = _currentActiveStates[zone];
             var newState = (input & mask) != 0;
-            var callback = _inputSubscriptions[zone];
-            callback(zone,
-                     newState ? InputState.On : InputState.Off);
-            _currentActiveStates[zone] = newState;
-            return newState != currentState;
+            var isChanged = oldState != newState;
+
+            if (isChanged)
+            {
+                var callback = _inputSubscriptions[zone];
+                callback(zone,
+                         newState ? InputState.On : InputState.Off);
+                _currentActiveStates[zone] = newState;
+            }
+
+            return isChanged;
         }
 
         public override void ResetState()

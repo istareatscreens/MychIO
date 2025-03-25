@@ -188,13 +188,19 @@ namespace MychIO.Device
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         private bool HandleInputChangeInternal(ButtonRingZone zone, byte input)
         {
-            var currentState =  _currentActiveStates[zone];
+            var oldState =  _currentActiveStates[zone];
             var newState = LEAST_SIGNIFICANT_BIT == input;
-            var callback = _inputSubscriptions[zone];
-            callback(zone,
-                     newState ? InputState.Off : InputState.On);
-            _currentActiveStates[zone] = newState;
-            return newState != currentState;
+            var isChanged = oldState != newState;
+
+            if (isChanged)
+            {
+                var callback = _inputSubscriptions[zone];
+                callback(zone,
+                         newState ? InputState.Off : InputState.On);
+                _currentActiveStates[zone] = newState;
+            }
+
+            return isChanged;
         }
 
         // source: https://stackoverflow.com/a/48599119
