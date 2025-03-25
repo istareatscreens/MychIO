@@ -87,6 +87,29 @@ namespace MychIO.Device.TouchPanel
         {
             
         }
+        public unsafe override void ReadDataWithDebounce(IntPtr pointer)
+        {
+            if (pointer == IntPtr.Zero)
+            {
+                return;
+            }
+            byte[] rawInput = new byte[MAX_TOUCH_POINTS * DATA_POINTS * SHORT_SIZE];
+            byte* pByte = (byte*)pointer;
+            for (int i = 0; i < MAX_TOUCH_POINTS * DATA_POINTS; i++)
+            {
+                rawInput[i] = *(pByte + i);
+            }
+
+            short[] currentInput = new short[MAX_TOUCH_POINTS * DATA_POINTS];
+            Buffer.BlockCopy(rawInput, 0, currentInput, 0, currentInput.Length);
+
+            // TODO: Implement
+            // UnityEngine.Debug.Log(GetTouchEventsString(currentInput));
+        }
+        public override void ReadDataWithDebounce(ReadOnlySpan<byte> data)
+        {
+
+        }
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         private void handleInputChange(TouchPanelZone zone, Tuple<short, short> coordinates, short state)
         {
