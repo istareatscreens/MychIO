@@ -188,7 +188,7 @@ namespace MychIO.Device
                 if (tail != ')')
                     continue;
 
-                for (var j = 1; j < 7; j++)
+                for (var j = 1; j < 8; j++)
                 {
                     var @byte = packet[j];
                     if (@byte == _currentState[j])
@@ -219,14 +219,14 @@ namespace MychIO.Device
                 if (tail != ')')
                     continue;
 
-                for (var j = 1; j < 7; j++)
+                for (var j = 1; j < 8; j++)
                 {
                     var @byte = packet[j];
                     var zone1 = (TouchPanelZone)(0 + ((j - 1) * 5));
-                    var zone2 = (TouchPanelZone)(0 + ((j - 1) * 5));
-                    var zone3 = (TouchPanelZone)(0 + ((j - 1) * 5));
-                    var zone4 = (TouchPanelZone)(0 + ((j - 1) * 5));
-                    var zone5 = (TouchPanelZone)(0 + ((j - 1) * 5));
+                    var zone2 = (TouchPanelZone)(1 + ((j - 1) * 5));
+                    var zone3 = (TouchPanelZone)(2 + ((j - 1) * 5));
+                    var zone4 = (TouchPanelZone)(3 + ((j - 1) * 5));
+                    var zone5 = (TouchPanelZone)(4 + ((j - 1) * 5));
 
                     DebounceHandle<TouchPanelZone, byte, byte>(zone1, _debounceCallbackHandler, zone1, @byte, BIT_1ST_MASK);
                     DebounceHandle<TouchPanelZone, byte, byte>(zone2, _debounceCallbackHandler, zone1, @byte, BIT_2ND_MASK);

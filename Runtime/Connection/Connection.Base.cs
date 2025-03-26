@@ -44,6 +44,7 @@ namespace MychIO.Connection
         public abstract void Read();
 
         public abstract void StopReading();
+        public abstract void Dispose();
 
         protected void ValidateConnectionProperties<T>() where T : ConnectionProperties
         {

@@ -60,7 +60,7 @@ namespace MychIO.Connection.TouchPanelDevice
             }
         }
 
-        private void OnDestroy()
+        public override void Dispose()
         {
 
             if (_dataCallbackHandle.IsAllocated)

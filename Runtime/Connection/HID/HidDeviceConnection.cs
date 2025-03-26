@@ -67,7 +67,7 @@ namespace MychIO.Connection.HidDevice
             }
         }
 
-        private void OnDestroy()
+        public override void Dispose()
         {
 
             if (_dataCallbackHandle.IsAllocated)

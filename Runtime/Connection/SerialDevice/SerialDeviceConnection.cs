@@ -64,6 +64,7 @@ namespace MychIO.Connection.SerialDevice
                 WriteTimeout = 0 == serialDeviceProperties.WriteTimeoutMS ?
                     SerialPort.InfiniteTimeout :
                     serialDeviceProperties.WriteTimeoutMS,
+                ReadTimeout = 3000,
                 Handshake = (System.IO.Ports.Handshake)serialDeviceProperties.Handshake,
                 RtsEnable = serialDeviceProperties.Rts,
                 DtrEnable = serialDeviceProperties.Dtr
@@ -108,8 +109,8 @@ namespace MychIO.Connection.SerialDevice
         
         public override void Write(ReadOnlySpan<byte> data)
         {
-            var serialStream = EnsureTouchPanelSerialStreamIsOpen(_serialPort);
-            serialStream.Write(data);
+            EnsureSerialPortIsOpen(_serialPort);
+            _serialPort.BaseStream.Write(data);
         }
         public async override Task WriteAsync(byte[] data)
         {
@@ -117,8 +118,8 @@ namespace MychIO.Connection.SerialDevice
         }
         public override async Task WriteAsync(ReadOnlyMemory<byte> data)
         {
-            var serialStream = EnsureTouchPanelSerialStreamIsOpen(_serialPort);
-            await serialStream.WriteAsync(data);
+            EnsureSerialPortIsOpen(_serialPort);
+            await _serialPort.BaseStream.WriteAsync(data);
         }
 
         public override bool CanConnect(IConnection connectionProperties)
@@ -147,53 +148,28 @@ namespace MychIO.Connection.SerialDevice
             StopReadPollingAsync();
         }
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        Stream EnsureTouchPanelSerialStreamIsOpen(SerialPort serialSession)
+        void EnsureSerialPortIsOpen(SerialPort serialSession)
         {
-            if (serialSession.IsOpen)
-            {
-                return serialSession.BaseStream;
-            }
-            else
+            if (!serialSession.IsOpen)
             {
                 serialSession.Open();
                 _device.OnConnected();
-
-                return serialSession.BaseStream;
             }
         }
-        void ReceiveData(ReceiveDataHandler readDataCallback)
+        [MethodImpl(MethodImplOptions.NoInlining)]
+        void ReadFromSerialPort(SerialPort serialPort,ReceiveDataHandler readDataCallback)
         {
-            try
+            var bytes2Read = _serialPort.BytesToRead;
+            if (bytes2Read == 0)
+                return;
+            Span<byte> buffer = stackalloc byte[bytes2Read];
+            var read = serialPort.Read(buffer);
+            if (read < _bufferByteLength)
             {
-                var token = _cts.Token;
-                Span<byte> buffer = stackalloc byte[_serialPort.ReadBufferSize];
-                while (true)
-                {
-                    var serialStream = EnsureTouchPanelSerialStreamIsOpen(_serialPort);
-                    var read = serialStream.Read(buffer);
-                    if (read < _bufferByteLength)
-                    {
-                        // Handle case where not enough data to read
-                        continue;
-                    }
-                    readDataCallback(buffer.Slice(0, read));
-                    token.ThrowIfCancellationRequested();
-                }
+                // Handle case where not enough data to read
+                return;
             }
-            catch (TaskCanceledException)
-            {
-                // Nothing to do here event was sent to detach
-            }
-            catch (Exception e)
-            {
-                // Throw event here potentially in the future for now just disconnect
-                _manager.handleEvent(IOEventType.ConnectionError, _device.Classification, _device.GetType().ToString() + "device connection failed due to following exception: " + e);
-                DisconnectAsync().Wait();
-            }
-            finally
-            {
-                Thread.Sleep(_pollTimeoutMs);
-            }
+            readDataCallback(buffer);
         }
         void StartReadDataLoop()
         {
@@ -208,21 +184,65 @@ namespace MychIO.Connection.SerialDevice
             {
                 _onReceiveData = _device.ReadData;
             }
-            _readDataLoop = Task.Factory.StartNew(() =>
+            ReadDataLoop(_onReceiveData);
+            //_readDataLoop = Task.Factory.StartNew(() =>
+            //{
+            //    _device.OnConnected();
+            //    ReceiveData(_onReceiveData);
+            //}, TaskCreationOptions.LongRunning);
+        }
+        void ReadDataLoop(ReceiveDataHandler receiveDataHandler)
+        {
+            _device.OnConnected();
+            try
             {
-                _device.OnConnected();
-                ReceiveData(_onReceiveData);
-            }, TaskCreationOptions.LongRunning);
+                var token = _cts.Token;
+                while (true)
+                {
+                    EnsureSerialPortIsOpen(_serialPort);
+                    ReadFromSerialPort(_serialPort, receiveDataHandler);
+                    token.ThrowIfCancellationRequested();
+                }
+            }
+            catch (OperationCanceledException)
+            {
+                // Nothing to do here event was sent to detach
+            }
+            catch (Exception e)
+            {
+                // Throw event here potentially in the future for now just disconnect
+                _manager.handleEvent(IOEventType.ConnectionError, _device.Classification, _device.GetType().ToString() + "device connection failed due to following exception: " + e);
+                Disconnect();
+            }
+            finally
+            {
+                Thread.Sleep(_pollTimeoutMs);
+            }
         }
         async ValueTask StopReadPollingAsync()
         {
             _cts.Cancel();
             await _readDataLoop;
         }
-        void OnDestroy()
+        public override void Dispose()
         {
             _device?.OnDisconnected();
+            _cts.Cancel();
         }
     }
-
+    static class SerialPortExtensions
+    {
+        public static int Read(this SerialPort serial, Span<byte> buffer)
+        {
+            var byte2Read = serial.BytesToRead;
+            var read = 0;
+            for (; read < buffer.Length; read++)
+            {
+                if (read == byte2Read)
+                    break;
+                buffer[read] = (byte)serial.ReadByte();
+            }
+            return read;
+        }
+    }
 }
