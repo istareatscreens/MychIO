@@ -83,7 +83,10 @@ namespace MychIO.Connection.SerialDevice
 
             StartReadDataLoop();
 
-            _manager.handleEvent(IOEventType.Attach, _device.Classification, _device.GetType().ToString() + " Device connected");
+            if(IsReading)
+            {
+                _manager.handleEvent(IOEventType.Attach, _device.Classification, _device.GetType().ToString() + " Device connected");
+            }
 
             return Task.CompletedTask;
         }
@@ -145,7 +148,7 @@ namespace MychIO.Connection.SerialDevice
 
         public override void StopReading()
         {
-            StopReadPollingAsync();
+            StopReadPollingAsync().Wait();
         }
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         void EnsureSerialPortIsOpen(SerialPort serialSession)
@@ -184,12 +187,10 @@ namespace MychIO.Connection.SerialDevice
             {
                 _onReceiveData = _device.ReadData;
             }
-            ReadDataLoop(_onReceiveData);
-            //_readDataLoop = Task.Factory.StartNew(() =>
-            //{
-            //    _device.OnConnected();
-            //    ReceiveData(_onReceiveData);
-            //}, TaskCreationOptions.LongRunning);
+            _readDataLoop = Task.Factory.StartNew(() =>
+            {
+                ReadDataLoop(_onReceiveData);
+            }, TaskCreationOptions.LongRunning);
         }
         void ReadDataLoop(ReceiveDataHandler receiveDataHandler)
         {
@@ -219,7 +220,7 @@ namespace MychIO.Connection.SerialDevice
                 Thread.Sleep(_pollTimeoutMs);
             }
         }
-        async ValueTask StopReadPollingAsync()
+        async Task StopReadPollingAsync()
         {
             _cts.Cancel();
             await _readDataLoop;

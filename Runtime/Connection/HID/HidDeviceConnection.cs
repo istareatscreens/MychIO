@@ -11,7 +11,7 @@ namespace MychIO.Connection.HidDevice
     {
         public override bool IsReading
         {
-            get => UnityHidApiPlugin.IsConnected(_pluginHandle);
+            get => UnityHidApiPlugin.IsReading(_pluginHandle);
         }
         /// <summary>
         /// Is Connected means its reading currently
@@ -136,7 +136,10 @@ namespace MychIO.Connection.HidDevice
             _eventCallbackHandle = GCHandle.Alloc(eventReceivedCallback);
             Read();
 
-            _manager.handleEvent(IOEventType.Attach, _device.Classification, _device.GetType().ToString() + " Device is running properly");
+            if(IsReading)
+            {
+                _manager.handleEvent(IOEventType.Attach, _device.Classification, _device.GetType().ToString() + " Device is running properly");
+            }
 
             return Task.CompletedTask;
 
