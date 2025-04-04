@@ -152,7 +152,10 @@ namespace MychIO.Device
         {
             return Task.CompletedTask;
         }
-
+        public virtual void Dispose()
+        {
+            _connection.Dispose();
+        }
         public void SetInputCallbacks(IDictionary<TZone, Action<TZone, TState>> inputSubscriptions)
         {
             // To prevent side effects due to threading reading will be halted temporarily to load new callbacks

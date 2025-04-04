@@ -11,7 +11,7 @@ namespace MychIO
 {
     using DeviceClassificationToInputAction = Dictionary<DeviceClassification, IDictionary<Enum, Action<Enum, Enum>>>;
 #nullable enable
-    public class IOManager
+    public class IOManager: IDisposable
     {
 
         public const string STANDARD_INPUT = "standard-input";
@@ -413,7 +413,13 @@ namespace MychIO
             // clone to prevent side effects
             _eventTypeToCallback = new Dictionary<IOEventType, ControllerEventDelegate>(eventSubscriptions);
         }
-
+        public void Dispose()
+        {
+            foreach(var (k,v) in _deviceClassificationToDevice)
+            {
+                v.Disconnect();
+            }
+        }
         // For Internal use only
         public void handleEvent(
             IOEventType eventType,

@@ -6,7 +6,7 @@ using MychIO.Generic;
 
 namespace MychIO.Device
 {
-    public interface IDevice : IIdentifier
+    public interface IDevice : IIdentifier, IDisposable
     {
         string Name { get; }
         bool CanRead { get; }

@@ -99,7 +99,7 @@ namespace MychIO.Connection.SerialDevice
             _device.ResetState();
             if (IsReading)
             {
-                await StopReadPollingAsync();
+                StopReadPollingAsync();
             }
             if (IsConnected)
             {
