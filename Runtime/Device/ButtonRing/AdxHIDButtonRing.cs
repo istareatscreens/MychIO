@@ -196,7 +196,7 @@ namespace MychIO.Device
             {
                 var callback = _inputSubscriptions[zone];
                 callback(zone,
-                         newState ? InputState.Off : InputState.On);
+                         newState ? InputState.On : InputState.Off);
                 _currentActiveStates[zone] = newState;
             }
 
