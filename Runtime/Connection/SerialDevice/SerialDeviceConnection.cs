@@ -203,6 +203,7 @@ namespace MychIO.Connection.SerialDevice
                     EnsureSerialPortIsOpen(_serialPort);
                     ReadFromSerialPort(_serialPort, receiveDataHandler);
                     token.ThrowIfCancellationRequested();
+                    Thread.Sleep(_pollTimeoutMs);
                 }
             }
             catch (OperationCanceledException)
@@ -214,10 +215,6 @@ namespace MychIO.Connection.SerialDevice
                 // Throw event here potentially in the future for now just disconnect
                 _manager.handleEvent(IOEventType.ConnectionError, _device.Classification, _device.GetType().ToString() + "device connection failed due to following exception: " + e);
                 Disconnect();
-            }
-            finally
-            {
-                Thread.Sleep(_pollTimeoutMs);
             }
         }
         async Task StopReadPollingAsync()
