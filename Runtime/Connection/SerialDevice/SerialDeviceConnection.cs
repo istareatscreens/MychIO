@@ -64,7 +64,8 @@ namespace MychIO.Connection.SerialDevice
                 WriteTimeout = 0 == serialDeviceProperties.WriteTimeoutMS ?
                     SerialPort.InfiniteTimeout :
                     serialDeviceProperties.WriteTimeoutMS,
-                ReadTimeout = 3000,
+                ReadTimeout = 0 == serialDeviceProperties.ReadTimeoutMS ? SerialPort.InfiniteTimeout :
+                                                                          serialDeviceProperties.ReadTimeoutMS,
                 Handshake = (System.IO.Ports.Handshake)serialDeviceProperties.Handshake,
                 RtsEnable = serialDeviceProperties.Rts,
                 DtrEnable = serialDeviceProperties.Dtr
@@ -163,8 +164,10 @@ namespace MychIO.Connection.SerialDevice
         void ReadFromSerialPort(SerialPort serialPort,ReceiveDataHandler readDataCallback)
         {
             var bytes2Read = _serialPort.BytesToRead;
-            if (bytes2Read == 0)
+            if (0 == bytes2Read)
+            {
                 return;
+            }
             Span<byte> buffer = stackalloc byte[bytes2Read];
             var read = serialPort.Read(buffer);
             if (read < _bufferByteLength)
@@ -177,7 +180,9 @@ namespace MychIO.Connection.SerialDevice
         void StartReadDataLoop()
         {
             if (IsReading)
+            {
                 return;
+            }
             var dt = _connectionProperties.GetDebounceThreshold();
             if(dt.TotalMilliseconds > 0)
             {
@@ -237,7 +242,9 @@ namespace MychIO.Connection.SerialDevice
             for (; read < buffer.Length; read++)
             {
                 if (read == byte2Read)
+                {
                     break;
+                }
                 buffer[read] = (byte)serial.ReadByte();
             }
             return read;

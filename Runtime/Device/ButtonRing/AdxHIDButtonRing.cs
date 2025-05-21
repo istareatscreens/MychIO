@@ -117,28 +117,28 @@ namespace MychIO.Device
             /** UNSAFE CODE */
         }
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public override void ReadData(ReadOnlySpan<byte> data)
+        public override void ReadData(ReadOnlySpan<byte> currentInput)
         {
             // Check if the state has changed
-            //if (ByteArraysEqual(_currentState, data))
-            //{
-            //    return;
-            //}
+            if (ByteArraysEqual(_currentState, currentInput))
+            {
+                return;
+            }
 
-            HandleInputChangeInternal(ButtonRingZone.BA3, data[1]);
-            HandleInputChangeInternal(ButtonRingZone.ArrowUp, data[8]);
-            HandleInputChangeInternal(ButtonRingZone.BA1, data[3]);
-            HandleInputChangeInternal(ButtonRingZone.BA2, data[2]);
-            HandleInputChangeInternal(ButtonRingZone.ArrowDown, data[10]);
-            HandleInputChangeInternal(ButtonRingZone.BA4, data[0]);
-            HandleInputChangeInternal(ButtonRingZone.BA5, data[7]);
-            HandleInputChangeInternal(ButtonRingZone.BA6, data[6]);
-            HandleInputChangeInternal(ButtonRingZone.BA7, data[5]);
-            HandleInputChangeInternal(ButtonRingZone.BA8, data[4]);
-            HandleInputChangeInternal(ButtonRingZone.Select, data[9]);
-            HandleInputChangeInternal(ButtonRingZone.InsertCoin, data[11]);
+            HandleInputChangeInternal(ButtonRingZone.BA3, currentInput[1]);
+            HandleInputChangeInternal(ButtonRingZone.ArrowUp, currentInput[8]);
+            HandleInputChangeInternal(ButtonRingZone.BA1, currentInput[3]);
+            HandleInputChangeInternal(ButtonRingZone.BA2, currentInput[2]);
+            HandleInputChangeInternal(ButtonRingZone.ArrowDown, currentInput[10]);
+            HandleInputChangeInternal(ButtonRingZone.BA4, currentInput[0]);
+            HandleInputChangeInternal(ButtonRingZone.BA5, currentInput[7]);
+            HandleInputChangeInternal(ButtonRingZone.BA6, currentInput[6]);
+            HandleInputChangeInternal(ButtonRingZone.BA7, currentInput[5]);
+            HandleInputChangeInternal(ButtonRingZone.BA8, currentInput[4]);
+            HandleInputChangeInternal(ButtonRingZone.Select, currentInput[9]);
+            HandleInputChangeInternal(ButtonRingZone.InsertCoin, currentInput[11]);
 
-            data.CopyTo(_currentState);
+            currentInput.CopyTo(_currentState);
         }
         public unsafe override void ReadDataWithDebounce(IntPtr pointer)
         {
@@ -162,28 +162,28 @@ namespace MychIO.Device
             ReadDataWithDebounce(currentInput);
             /** UNSAFE CODE */
         }
-        public override void ReadDataWithDebounce(ReadOnlySpan<byte> data)
+        public override void ReadDataWithDebounce(ReadOnlySpan<byte> currentInput)
         {
             // Check if the state has changed
-            //if (ByteArraysEqual(_currentState, data))
-            //{
-            //    return;
-            //}
+            if (ByteArraysEqual(_currentState, currentInput))
+            {
+                return;
+            }
 
-            DebounceHandle(ButtonRingZone.BA3, _debounceCallbackHandler, ButtonRingZone.BA3,data[1]);
-            DebounceHandle(ButtonRingZone.ArrowUp, _debounceCallbackHandler, ButtonRingZone.ArrowUp, data[8]);
-            DebounceHandle(ButtonRingZone.BA1, _debounceCallbackHandler, ButtonRingZone.BA1, data[3]);
-            DebounceHandle(ButtonRingZone.BA2, _debounceCallbackHandler, ButtonRingZone.BA2, data[2]);
-            DebounceHandle(ButtonRingZone.ArrowDown, _debounceCallbackHandler, ButtonRingZone.ArrowDown, data[10]);
-            DebounceHandle(ButtonRingZone.BA4, _debounceCallbackHandler, ButtonRingZone.BA4, data[0]);
-            DebounceHandle(ButtonRingZone.BA5, _debounceCallbackHandler, ButtonRingZone.BA5, data[7]);
-            DebounceHandle(ButtonRingZone.BA6, _debounceCallbackHandler, ButtonRingZone.BA6, data[6]);
-            DebounceHandle(ButtonRingZone.BA7, _debounceCallbackHandler, ButtonRingZone.BA7, data[5]);
-            DebounceHandle(ButtonRingZone.BA8, _debounceCallbackHandler, ButtonRingZone.BA8, data[4]);
-            DebounceHandle(ButtonRingZone.Select, _debounceCallbackHandler, ButtonRingZone.Select, data[9]);
-            DebounceHandle(ButtonRingZone.InsertCoin, _debounceCallbackHandler, ButtonRingZone.InsertCoin, data[11]);
+            DebounceHandle(ButtonRingZone.BA3, _debounceCallbackHandler, ButtonRingZone.BA3,currentInput[1]);
+            DebounceHandle(ButtonRingZone.ArrowUp, _debounceCallbackHandler, ButtonRingZone.ArrowUp, currentInput[8]);
+            DebounceHandle(ButtonRingZone.BA1, _debounceCallbackHandler, ButtonRingZone.BA1, currentInput[3]);
+            DebounceHandle(ButtonRingZone.BA2, _debounceCallbackHandler, ButtonRingZone.BA2, currentInput[2]);
+            DebounceHandle(ButtonRingZone.ArrowDown, _debounceCallbackHandler, ButtonRingZone.ArrowDown, currentInput[10]);
+            DebounceHandle(ButtonRingZone.BA4, _debounceCallbackHandler, ButtonRingZone.BA4, currentInput[0]);
+            DebounceHandle(ButtonRingZone.BA5, _debounceCallbackHandler, ButtonRingZone.BA5, currentInput[7]);
+            DebounceHandle(ButtonRingZone.BA6, _debounceCallbackHandler, ButtonRingZone.BA6, currentInput[6]);
+            DebounceHandle(ButtonRingZone.BA7, _debounceCallbackHandler, ButtonRingZone.BA7, currentInput[5]);
+            DebounceHandle(ButtonRingZone.BA8, _debounceCallbackHandler, ButtonRingZone.BA8, currentInput[4]);
+            DebounceHandle(ButtonRingZone.Select, _debounceCallbackHandler, ButtonRingZone.Select, currentInput[9]);
+            DebounceHandle(ButtonRingZone.InsertCoin, _debounceCallbackHandler, ButtonRingZone.InsertCoin, currentInput[11]);
 
-            data.CopyTo(_currentState);
+            currentInput.CopyTo(_currentState);
         }
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         private bool HandleInputChangeInternal(ButtonRingZone zone, byte input)

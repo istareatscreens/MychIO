@@ -171,22 +171,28 @@ namespace MychIO.Device
         }
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public override void ReadData(ReadOnlySpan<byte> data)
+        public override void ReadData(ReadOnlySpan<byte> currentInput)
         {
             // ensure buffer is aligned
-            var headIndexs = GetPacketHeadIndexs(stackalloc int[data.Length], data);
+            var headIndexs = GetPacketHeadIndexs(stackalloc int[currentInput.Length], currentInput);
 
             if (headIndexs.IsEmpty)
+            {
                 return;
+            }
             for (var i = 0; i < headIndexs.Length; i++)
             {
                 var headIndex = headIndexs[i];
-                if (headIndex + BYTES_TO_READ > data.Length)
+                if (headIndex + BYTES_TO_READ > currentInput.Length)
+                {
                     return;
-                var packet = data.Slice(headIndexs[i], BYTES_TO_READ);
+                }
+                var packet = currentInput.Slice(headIndexs[i], BYTES_TO_READ);
                 var tail = packet[BYTES_TO_READ - 1];
-                if (tail != ')')
+                if (')' != tail)
+                {
                     continue;
+                }
 
                 for (var j = 1; j < 8; j++)
                 {
@@ -202,22 +208,28 @@ namespace MychIO.Device
                 packet.CopyTo(_currentState);
             }
         }
-        public override void ReadDataWithDebounce(ReadOnlySpan<byte> data)
+        public override void ReadDataWithDebounce(ReadOnlySpan<byte> currentInput)
         {
             // ensure buffer is aligned
-            var headIndexs = GetPacketHeadIndexs(stackalloc int[data.Length], data);
+            var headIndexs = GetPacketHeadIndexs(stackalloc int[currentInput.Length], currentInput);
 
             if (headIndexs.IsEmpty)
+            {
                 return;
+            }
             for (var i = 0; i < headIndexs.Length; i++)
             {
                 var headIndex = headIndexs[i];
-                if (headIndex + BYTES_TO_READ > data.Length)
+                if (headIndex + BYTES_TO_READ > currentInput.Length)
+                {
                     return;
-                var packet = data.Slice(headIndexs[i], BYTES_TO_READ);
+                }
+                var packet = currentInput.Slice(headIndexs[i], BYTES_TO_READ);
                 var tail = packet[BYTES_TO_READ - 1];
-                if (tail != ')')
+                if (')' != tail)
+                {
                     continue;
+                }
 
                 for (var j = 1; j < 8; j++)
                 {
@@ -241,7 +253,9 @@ namespace MychIO.Device
         private bool HandleInputChangeInternal(TouchPanelZone zone, byte input, byte mask)
         {
             if (zone > TouchPanelZone.E8 || zone < TouchPanelZone.A1)
+            {
                 return false;
+            }
 
             var oldState = _currentActiveStates[zone];
             var newState = (input & mask) != 0;
@@ -299,7 +313,7 @@ namespace MychIO.Device
             for (var y = 0; y < packet.Length; y++)
             {
                 var @byte = packet[y];
-                if (@byte == '(')
+                if ('(' == @byte)
                 {
                     buffer[++x] = y;
                 }
