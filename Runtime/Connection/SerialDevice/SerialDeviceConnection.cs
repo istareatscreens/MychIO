@@ -84,7 +84,7 @@ namespace MychIO.Connection.SerialDevice
 
             StartReadDataLoop();
 
-            if(IsReading)
+            if (IsReading)
             {
                 _manager.handleEvent(IOEventType.Attach, _device.Classification, _device.GetType().ToString() + " Device connected");
             }
@@ -100,7 +100,7 @@ namespace MychIO.Connection.SerialDevice
             _device.ResetState();
             if (IsReading)
             {
-                StopReadPollingAsync();
+                await StopReadPollingAsync();
             }
             if (IsConnected)
             {
@@ -110,7 +110,7 @@ namespace MychIO.Connection.SerialDevice
             _serialPort = null;
             _manager.handleEvent(IOEventType.Detach, _device.Classification, _device.GetType().ToString() + "device disconnected");
         }
-        
+
         public override void Write(ReadOnlySpan<byte> data)
         {
             EnsureSerialPortIsOpen(_serialPort);
@@ -137,7 +137,7 @@ namespace MychIO.Connection.SerialDevice
         {
             if (!IsReading)
             {
-                if(_cts is not null)
+                if (_cts is not null)
                 {
                     // Dispose the old one if it's not null
                     _cts.Cancel();
@@ -161,7 +161,7 @@ namespace MychIO.Connection.SerialDevice
             }
         }
         [MethodImpl(MethodImplOptions.NoInlining)]
-        void ReadFromSerialPort(SerialPort serialPort,ReceiveDataHandler readDataCallback)
+        void ReadFromSerialPort(SerialPort serialPort, ReceiveDataHandler readDataCallback)
         {
             var bytes2Read = _serialPort.BytesToRead;
             if (0 == bytes2Read)
@@ -184,7 +184,7 @@ namespace MychIO.Connection.SerialDevice
                 return;
             }
             var dt = _connectionProperties.GetDebounceThreshold();
-            if(dt.TotalMilliseconds > 0)
+            if (dt.TotalMilliseconds > 0)
             {
                 _onReceiveData = _device.ReadDataWithDebounce;
             }

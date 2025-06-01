@@ -4,6 +4,7 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Runtime.CompilerServices;
 using System.Runtime.InteropServices;
+using Unity.Collections.LowLevel.Unsafe;
 using System.Threading.Tasks;
 using MychIO.Connection;
 using MychIO.Connection.SerialDevice;
@@ -170,12 +171,12 @@ namespace MychIO.Device
             await WriteAsync(LedCommand.ClearAll);
         }
 
-        
+
         public override void ResetState()
         {
             NO_INPUT_PACKET.CopyTo(_currentState);
         }
-        async Task SetColorAsync(Color newColor,int index)
+        async Task SetColorAsync(Color newColor, int index)
         {
             var packet = Commands[(LedCommand)(2 + index)][0];
             packet[5] = (byte)index;
@@ -213,7 +214,7 @@ namespace MychIO.Device
                     var g = bufferSpan[2];
                     var b = bufferSpan[3];
                     var newColor = new Color(r / 255, g / 255, b / 255);
-                    return new ((int)command - 2,command, newColor);
+                    return new((int)command - 2, command, newColor);
                 default:
                     return new(-1, command, null);
             }
@@ -232,7 +233,7 @@ namespace MychIO.Device
                     if (interactions[i] is null)
                         continue;
 
-                    var value = Unsafe.As<T, int>(ref interactions[i]);
+                    var value = UnsafeUtility.As<T, int>(ref interactions[i]);
                     var buffer = owner.Memory;
                     MemoryMarshal.Write(buffer.Span, ref value);
                     var cmdInfo = ParseCommand(buffer);
