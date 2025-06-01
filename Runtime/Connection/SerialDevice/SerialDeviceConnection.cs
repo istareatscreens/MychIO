@@ -1,36 +1,49 @@
 using System;
+using System.IO;
 using System.IO.Ports;
+using System.Runtime.CompilerServices;
 using System.Threading;
 using System.Threading.Tasks;
 using MychIO.Device;
 using MychIO.Event;
-using UnityEditor;
 
 namespace MychIO.Connection.SerialDevice
 {
     public class SerialDeviceConnection : Connection
     {
+        public override bool IsConnected
+        {
+            get => _serialPort?.IsOpen ?? false;
+        }
+        public override bool IsReading
+        {
+            get => !_readDataLoop.IsCompleted;
+        }
+        public new static ConnectionType GetConnectionType() => ConnectionType.SerialDevice;
+
+        delegate void ReceiveDataHandler(ReadOnlySpan<byte> data);
 
         private SerialPort _serialPort;
         private int _pollTimeoutMs;
         private int _bufferByteLength;
-        private CancellationTokenSource _cancellationTokenSource = new CancellationTokenSource();
 
+        Task _readDataLoop = Task.CompletedTask;
+        private CancellationTokenSource _cts = new CancellationTokenSource();
+
+        ReceiveDataHandler _onReceiveData;
         public SerialDeviceConnection(IDevice device, IConnectionProperties connectionProperties, IOManager manager) :
          base(device, connectionProperties, manager)
-        { }
-
-        private void OnDestroy()
         {
-            _device?.OnDisconnectWrite();
+            _onReceiveData = _device.ReadData;
         }
 
-        public new static ConnectionType GetConnectionType() => ConnectionType.SerialDevice;
-
-        public override Task Connect()
+        public override void Connect()
         {
-
-            if (IsConnected())
+            ConnectAsync().Wait();
+        }
+        public override Task ConnectAsync()
+        {
+            if (IsConnected)
             {
                 // TODO: Set event here
                 return Task.CompletedTask;
@@ -51,6 +64,8 @@ namespace MychIO.Connection.SerialDevice
                 WriteTimeout = 0 == serialDeviceProperties.WriteTimeoutMS ?
                     SerialPort.InfiniteTimeout :
                     serialDeviceProperties.WriteTimeoutMS,
+                ReadTimeout = 0 == serialDeviceProperties.ReadTimeoutMS ? SerialPort.InfiniteTimeout :
+                                                                          serialDeviceProperties.ReadTimeoutMS,
                 Handshake = (System.IO.Ports.Handshake)serialDeviceProperties.Handshake,
                 RtsEnable = serialDeviceProperties.Rts,
                 DtrEnable = serialDeviceProperties.Dtr
@@ -61,86 +76,54 @@ namespace MychIO.Connection.SerialDevice
             // https://stackoverflow.com/questions/13408476/detecting-when-a-serialport-gets-disconnected
             _serialPort.Open();
 
-            if (!IsConnected())
+            if (!IsConnected)
             {
-                _manager.handleEvent(IOEventType.ConnectionError, _device.GetClassification(), _device.GetType().ToString() + " Device lost COM port connection");
+                _manager.handleEvent(IOEventType.ConnectionError, _device.Classification, _device.GetType().ToString() + " Device lost COM port connection");
                 return Task.CompletedTask;
             }
 
-            Task.Run(async () =>
-            {
-                await _device.OnStartWrite();
-                await ReceiveData(GetRecieveDataFunction());
-            });
+            StartReadDataLoop();
 
-            _manager.handleEvent(IOEventType.Attach, _device.GetClassification(), _device.GetType().ToString() + " Device connected");
+            if (IsReading)
+            {
+                _manager.handleEvent(IOEventType.Attach, _device.Classification, _device.GetType().ToString() + " Device connected");
+            }
 
             return Task.CompletedTask;
         }
-
-        private Action<byte[]> GetRecieveDataFunction()
+        public override void Disconnect()
         {
-            return _connectionProperties.GetDebounceTime() > TimeSpan.FromMilliseconds(0) ?
-                         new Action<byte[]>((data) => _device.ReadDataDebounce(data)) :
-                         new Action<byte[]>((data) => _device.ReadData(data));
+            DisconnectAsync().Wait();
         }
-
-        private async Task ReceiveData(Action<byte[]> ReadData)
-        {
-            try
-            {
-                while (!_cancellationTokenSource.Token.IsCancellationRequested)
-                {
-                    //int bytesRead = _serialPort.Read(buffer, 0, _bufferByteLength);
-                    int bytesRead = _serialPort.BytesToRead;
-                    byte[] buffer = new byte[bytesRead];
-                    _serialPort.Read(buffer, 0, bytesRead);
-                    if (bytesRead < _bufferByteLength) { continue; } // Handle case where not enough data to read
-                    ReadData(buffer);
-                    await Task.Delay(_pollTimeoutMs, _cancellationTokenSource.Token);
-                }
-            }
-            catch (TaskCanceledException)
-            {
-                // Nothing to do here event was sent to detach
-            }
-            catch (Exception e)
-            {
-                // Throw event here potentially in the future for now just disconnect
-                _manager.handleEvent(IOEventType.ConnectionError, _device.GetClassification(), _device.GetType().ToString() + "device connection failed due to following exception: " + e);
-                await Disconnect();
-            }
-        }
-
-        private void StopReadPolling()
-        {
-            _cancellationTokenSource.Cancel();
-        }
-
-        public override async Task Disconnect()
+        public override async Task DisconnectAsync()
         {
             _device.ResetState();
-            if (IsReading())
+            if (IsReading)
             {
-                StopReadPolling();
+                await StopReadPollingAsync();
             }
-            if (IsConnected())
+            if (IsConnected)
             {
-                await _device.OnDisconnectWrite();
+                await _device.OnDisconnectedAsync();
                 _serialPort?.Close();
             }
             _serialPort = null;
-            _manager.handleEvent(IOEventType.Detach, _device.GetClassification(), _device.GetType().ToString() + "device disconnected");
+            _manager.handleEvent(IOEventType.Detach, _device.Classification, _device.GetType().ToString() + "device disconnected");
         }
 
-        public override bool IsConnected()
+        public override void Write(ReadOnlySpan<byte> data)
         {
-            return _serialPort?.IsOpen ?? false;
+            EnsureSerialPortIsOpen(_serialPort);
+            _serialPort.BaseStream.Write(data);
         }
-
-        public async override Task Write(byte[] data)
+        public async override Task WriteAsync(byte[] data)
         {
-            await _serialPort.BaseStream.WriteAsync(data, 0, data.Length);
+            await WriteAsync(data.AsMemory());
+        }
+        public override async Task WriteAsync(ReadOnlyMemory<byte> data)
+        {
+            EnsureSerialPortIsOpen(_serialPort);
+            await _serialPort.BaseStream.WriteAsync(data);
         }
 
         public override bool CanConnect(IConnection connectionProperties)
@@ -150,29 +133,121 @@ namespace MychIO.Connection.SerialDevice
               ((SerialDeviceProperties)_connectionProperties).ComPortNumber;
         }
 
-        public override bool IsReading()
-        {
-            return !_cancellationTokenSource.Token.IsCancellationRequested;
-        }
-
         public override void Read()
         {
-            if (!IsReading())
+            if (!IsReading)
             {
-                _cancellationTokenSource.Dispose(); // Dispose the old one if it's not null
-                _cancellationTokenSource = new CancellationTokenSource();
-                Task.Run(async () =>
+                if (_cts is not null)
                 {
-                    await _device.OnStartWrite();
-                    await ReceiveData(GetRecieveDataFunction());
-                });
+                    // Dispose the old one if it's not null
+                    _cts.Cancel();
+                }
+                _cts = new CancellationTokenSource();
+                StartReadDataLoop();
             }
         }
 
         public override void StopReading()
         {
-            StopReadPolling();
+            StopReadPollingAsync().Wait();
+        }
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        void EnsureSerialPortIsOpen(SerialPort serialSession)
+        {
+            if (!serialSession.IsOpen)
+            {
+                serialSession.Open();
+                _device.OnConnected();
+            }
+        }
+        [MethodImpl(MethodImplOptions.NoInlining)]
+        void ReadFromSerialPort(SerialPort serialPort, ReceiveDataHandler readDataCallback)
+        {
+            var bytes2Read = _serialPort.BytesToRead;
+            if (0 == bytes2Read)
+            {
+                return;
+            }
+            Span<byte> buffer = stackalloc byte[bytes2Read];
+            var read = serialPort.Read(buffer);
+            if (read < _bufferByteLength)
+            {
+                // Handle case where not enough data to read
+                return;
+            }
+            readDataCallback(buffer);
+        }
+        void StartReadDataLoop()
+        {
+            if (IsReading)
+            {
+                return;
+            }
+            var dt = _connectionProperties.GetDebounceThreshold();
+            if (dt.TotalMilliseconds > 0)
+            {
+                _onReceiveData = _device.ReadDataWithDebounce;
+            }
+            else
+            {
+                _onReceiveData = _device.ReadData;
+            }
+            _readDataLoop = Task.Factory.StartNew(() =>
+            {
+                ReadDataLoop(_onReceiveData);
+            }, TaskCreationOptions.LongRunning);
+        }
+        void ReadDataLoop(ReceiveDataHandler receiveDataHandler)
+        {
+            _device.OnConnected();
+            try
+            {
+                var token = _cts.Token;
+                while (true)
+                {
+                    EnsureSerialPortIsOpen(_serialPort);
+                    ReadFromSerialPort(_serialPort, receiveDataHandler);
+                    token.ThrowIfCancellationRequested();
+                    Thread.Sleep(_pollTimeoutMs);
+                }
+            }
+            catch (OperationCanceledException)
+            {
+                // Nothing to do here event was sent to detach
+            }
+            catch (Exception e)
+            {
+                // Throw event here potentially in the future for now just disconnect
+                _manager.handleEvent(IOEventType.ConnectionError, _device.Classification, _device.GetType().ToString() + "device connection failed due to following exception: " + e);
+                Disconnect();
+            }
+        }
+        async Task StopReadPollingAsync()
+        {
+            _cts.Cancel();
+            await _readDataLoop;
+        }
+        public override void Dispose()
+        {
+            _device?.OnDisconnected();
+            _cts.Cancel();
         }
     }
-
+    static class SerialPortExtensions
+    {
+        public static int Read(this SerialPort serial, Span<byte> buffer)
+        {
+            var byte2Read = serial.BytesToRead;
+            var read = 0;
+            for (; read < buffer.Length; read++)
+            {
+                if (read == byte2Read)
+                {
+                    break;
+                }
+                buffer[read] = (byte)serial.ReadByte();
+            }
+            return read;
+        }
+    }
 }

@@ -1,8 +1,10 @@
 using System;
 using System.Collections.Generic;
+using System.Drawing;
 using System.Linq;
 using System.Runtime.CompilerServices;
 using System.Text;
+using System.Threading;
 using System.Threading.Tasks;
 using MychIO.Connection;
 using MychIO.Connection.SerialDevice;
@@ -10,7 +12,7 @@ using MychIO.Helper;
 
 namespace MychIO.Device
 {
-    public class AdxTouchPanel : Device<TouchPanelZone, InputState, SerialDeviceProperties>
+    public class AdxTouchPanel : Device<TouchPanelZone, InputState, AdxTouchPanelProperties>
     {
 
         /**
@@ -52,18 +54,34 @@ namespace MychIO.Device
              0b10000001, TouchPanelZone.D8 
              ...
         */
-
+        public override string Name
+        {
+            get => DEVICE_NAME;
+        }
+        public override bool CanRead
+        {
+            get => true;
+        }
+        public override bool CanWrite
+        {
+            get => true;
+        }
         public const string DEVICE_NAME = "AdxTouchPanel";
 
         // Settings for microoptimization
         public const int BYTES_TO_READ = 9;
 
+        const int BIT_1ST_MASK = 0b00000001;
+        const int BIT_2ND_MASK = 0b00000010;
+        const int BIT_3RD_MASK = 0b00000100;
+        const int BIT_4TH_MASK = 0b00001000;
+        const int BIT_5TH_MASK = 0b00010000;
+
         // ** Connection Properties -- Required by factory: 
         public static new ConnectionType GetConnectionType() => ConnectionType.SerialDevice;
         public static new DeviceClassification GetDeviceClassification() => DeviceClassification.TouchPanel;
         public static new string GetDeviceName() => DEVICE_NAME;
-        public override string DeviceName() => DEVICE_NAME;
-        public static new IConnectionProperties GetDefaultConnectionProperties() => new SerialDeviceProperties(
+        public static new IConnectionProperties GetDefaultConnectionProperties() => new AdxTouchPanelProperties(
             comPortNumber: "COM3",
             writeTimeoutMS: SerialDeviceProperties.DEFAULT_WRITE_TIMEOUT_MS,
             bufferByteLength: 9,
@@ -77,7 +95,7 @@ namespace MychIO.Device
             dtr: false,
             rts: false
         );
-        public new static SerialDeviceProperties GetDefaultDeviceProperties() => (SerialDeviceProperties)GetDefaultConnectionProperties();
+        public new static AdxTouchPanelProperties GetDefaultDeviceProperties() => (AdxTouchPanelProperties)GetDefaultConnectionProperties();
 
         // ** Connection Properties 
 
@@ -91,6 +109,7 @@ namespace MychIO.Device
         private byte[] _currentState = NO_INPUT_PACKET;
         //private byte[] _currentInput = new byte[BYTES_TO_READ];
         private IDictionary<TouchPanelZone, bool> _currentActiveStates;
+        readonly DebounceCallbackHandler<TouchPanelZone, byte, byte> _debounceCallbackHandler;
 
         public static readonly IDictionary<TouchPanelCommand, byte[][]> Commands = new Dictionary<TouchPanelCommand, byte[][]>
         {
@@ -105,6 +124,7 @@ namespace MychIO.Device
             IOManager manager = null
         ) : base(inputSubscriptions, connectionProperties, manager)
         {
+            _debounceCallbackHandler = HandleInputChangeInternal;
             // current states
             _currentActiveStates = new Dictionary<TouchPanelZone, bool>();
             foreach (TouchPanelZone zone in Enum.GetValues(typeof(TouchPanelZone)))
@@ -113,238 +133,151 @@ namespace MychIO.Device
             }
         }
 
-        public override async Task OnStartWrite()
+        public override void OnConnected()
         {
-            await Write(TouchPanelCommand.Reset, TouchPanelCommand.Halt);
+            OnConnectedAsync().Wait();
+        }
+
+        public override async Task OnConnectedAsync()
+        {
+            await WriteAsync(TouchPanelCommand.Reset, TouchPanelCommand.Halt);
             // Calibration
             for (byte a = 0x41; a <= 0x62; a++)
             {
-                await _connection.Write(Encoding.UTF8.GetBytes("{L" + (char)a + "r2}"));
+                await _connection.WriteAsync(Encoding.UTF8.GetBytes("{L" + (char)a + "r2}"));
             }
-
-            await Write(TouchPanelCommand.Start);
+            dynamic sens = 0;
+            var connProperties = _connectionProperties.Properties;
+            var sensitivityOverride = connProperties.TryGetValue("SensitivityOverride", out var _sensitivityOverride) &&
+                                      connProperties.TryGetValue("Sensitivity", out sens) && _sensitivityOverride;
+            if (sensitivityOverride)
+            {
+                try
+                {
+                    for (byte a = 0x41; a <= 0x62; a++)
+                    {
+                        var value = GetSensitivityValue(a, sens);
+                        await _connection.WriteAsync(Encoding.UTF8.GetBytes($"{{{"L"}{(char)a}k{(char)value}}}"));
+                    }
+                }
+                catch (Exception e)
+                {
+                    _manager.handleEvent(Event.IOEventType.Debug,
+                                         DeviceClassification.TouchPanel,
+                                         $"An error occurred while setting sensitivity:\n{e}");
+                }
+            }
+            await WriteAsync(TouchPanelCommand.Start);
         }
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public override void ReadDataDebounce(byte[] data)
-        {
-            if (data[0] != '(')
-            {
-                return;
-            }
-
-            var _data = data.AsSpan().Slice(data.Length - BYTES_TO_READ);
-            Span<byte> currentInput = stackalloc byte[BYTES_TO_READ];
-            _data.CopyTo(currentInput);
-
-            if (ByteArraysEqual(_currentState, currentInput))
-            {
-                return;
-            }
-
-            bool HandleA1(byte input) => handleInputChange(TouchPanelZone.A1, input, 0b00000001);
-            bool HandleA2(byte input) => handleInputChange(TouchPanelZone.A2, input, 0b00000010);
-            bool HandleA3(byte input) => handleInputChange(TouchPanelZone.A3, input, 0b00000100);
-            bool HandleA4(byte input) => handleInputChange(TouchPanelZone.A4, input, 0b00001000);
-            bool HandleA5(byte input) => handleInputChange(TouchPanelZone.A5, input, 0b00010000);
-
-            if (currentInput[1] != _currentState[1])
-            {
-                DebouncedHandleInputChange(TouchPanelZone.A1, HandleA1, currentInput[1]);
-                DebouncedHandleInputChange(TouchPanelZone.A2, HandleA2, currentInput[1]);
-                DebouncedHandleInputChange(TouchPanelZone.A3, HandleA3, currentInput[1]);
-                DebouncedHandleInputChange(TouchPanelZone.A4, HandleA4, currentInput[1]);
-                DebouncedHandleInputChange(TouchPanelZone.A5, HandleA5, currentInput[1]);
-            }
-
-            bool HandleA6(byte input) => handleInputChange(TouchPanelZone.A6, input, 0b00000001);
-            bool HandleA7(byte input) => handleInputChange(TouchPanelZone.A7, input, 0b00000010);
-            bool HandleA8(byte input) => handleInputChange(TouchPanelZone.A8, input, 0b00000100);
-            bool HandleB1(byte input) => handleInputChange(TouchPanelZone.B1, input, 0b00001000);
-            bool HandleB2(byte input) => handleInputChange(TouchPanelZone.B2, input, 0b00010000);
-
-            if (currentInput[2] != _currentState[2])
-            {
-                DebouncedHandleInputChange(TouchPanelZone.A6, HandleA6, currentInput[2]);
-                DebouncedHandleInputChange(TouchPanelZone.A7, HandleA7, currentInput[2]);
-                DebouncedHandleInputChange(TouchPanelZone.A8, HandleA8, currentInput[2]);
-                DebouncedHandleInputChange(TouchPanelZone.B1, HandleB1, currentInput[2]);
-                DebouncedHandleInputChange(TouchPanelZone.B2, HandleB2, currentInput[2]);
-            }
-
-            bool HandleB3(byte input) => handleInputChange(TouchPanelZone.B3, input, 0b00000001);
-            bool HandleB4(byte input) => handleInputChange(TouchPanelZone.B4, input, 0b00000010);
-            bool HandleB5(byte input) => handleInputChange(TouchPanelZone.B5, input, 0b00000100);
-            bool HandleB6(byte input) => handleInputChange(TouchPanelZone.B6, input, 0b00001000);
-            bool HandleB7(byte input) => handleInputChange(TouchPanelZone.B7, input, 0b00010000);
-
-            if (currentInput[3] != _currentState[3])
-            {
-                DebouncedHandleInputChange(TouchPanelZone.B3, HandleB3, currentInput[3]);
-                DebouncedHandleInputChange(TouchPanelZone.B4, HandleB4, currentInput[3]);
-                DebouncedHandleInputChange(TouchPanelZone.B5, HandleB5, currentInput[3]);
-                DebouncedHandleInputChange(TouchPanelZone.B6, HandleB6, currentInput[3]);
-                DebouncedHandleInputChange(TouchPanelZone.B7, HandleB7, currentInput[3]);
-            }
-
-            bool HandleB8(byte input) => handleInputChange(TouchPanelZone.B8, input, 0b00000001);
-            bool HandleC1(byte input) => handleInputChange(TouchPanelZone.C1, input, 0b00000010);
-            bool HandleC2(byte input) => handleInputChange(TouchPanelZone.C2, input, 0b00000100);
-            bool HandleD1(byte input) => handleInputChange(TouchPanelZone.D1, input, 0b00001000);
-            bool HandleD2(byte input) => handleInputChange(TouchPanelZone.D2, input, 0b00010000);
-
-            if (currentInput[4] != _currentState[4])
-            {
-                DebouncedHandleInputChange(TouchPanelZone.B8, HandleB8, currentInput[4]);
-                DebouncedHandleInputChange(TouchPanelZone.C1, HandleC1, currentInput[4]);
-                DebouncedHandleInputChange(TouchPanelZone.C2, HandleC2, currentInput[4]);
-                DebouncedHandleInputChange(TouchPanelZone.D1, HandleD1, currentInput[4]);
-                DebouncedHandleInputChange(TouchPanelZone.D2, HandleD2, currentInput[4]);
-            }
-
-            bool HandleD3(byte input) => handleInputChange(TouchPanelZone.D3, input, 0b00000001);
-            bool HandleD4(byte input) => handleInputChange(TouchPanelZone.D4, input, 0b00000010);
-            bool HandleD5(byte input) => handleInputChange(TouchPanelZone.D5, input, 0b00000100);
-            bool HandleD6(byte input) => handleInputChange(TouchPanelZone.D6, input, 0b00001000);
-            bool HandleD7(byte input) => handleInputChange(TouchPanelZone.D7, input, 0b00010000);
-
-            if (currentInput[5] != _currentState[5])
-            {
-                DebouncedHandleInputChange(TouchPanelZone.D3, HandleD3, currentInput[5]);
-                DebouncedHandleInputChange(TouchPanelZone.D4, HandleD4, currentInput[5]);
-                DebouncedHandleInputChange(TouchPanelZone.D5, HandleD5, currentInput[5]);
-                DebouncedHandleInputChange(TouchPanelZone.D6, HandleD6, currentInput[5]);
-                DebouncedHandleInputChange(TouchPanelZone.D7, HandleD7, currentInput[5]);
-            }
-
-            bool HandleD8(byte input) => handleInputChange(TouchPanelZone.D8, input, 0b00000001);
-            bool HandleE1(byte input) => handleInputChange(TouchPanelZone.E1, input, 0b00000010);
-            bool HandleE2(byte input) => handleInputChange(TouchPanelZone.E2, input, 0b00000100);
-            bool HandleE3(byte input) => handleInputChange(TouchPanelZone.E3, input, 0b00001000);
-            bool HandleE4(byte input) => handleInputChange(TouchPanelZone.E4, input, 0b00010000);
-
-            if (currentInput[6] != _currentState[6])
-            {
-                DebouncedHandleInputChange(TouchPanelZone.D8, HandleD8, currentInput[6]);
-                DebouncedHandleInputChange(TouchPanelZone.E1, HandleE1, currentInput[6]);
-                DebouncedHandleInputChange(TouchPanelZone.E2, HandleE2, currentInput[6]);
-                DebouncedHandleInputChange(TouchPanelZone.E3, HandleE3, currentInput[6]);
-                DebouncedHandleInputChange(TouchPanelZone.E4, HandleE4, currentInput[6]);
-            }
-
-            bool HandleE5(byte input) => handleInputChange(TouchPanelZone.E5, input, 0b00000001);
-            bool HandleE6(byte input) => handleInputChange(TouchPanelZone.E6, input, 0b00000010);
-            bool HandleE7(byte input) => handleInputChange(TouchPanelZone.E7, input, 0b00000100);
-            bool HandleE8(byte input) => handleInputChange(TouchPanelZone.E8, input, 0b00001000);
-
-            if (currentInput[7] != _currentState[7])
-            {
-                DebouncedHandleInputChange(TouchPanelZone.E5, HandleE5, currentInput[7]);
-                DebouncedHandleInputChange(TouchPanelZone.E6, HandleE6, currentInput[7]);
-                DebouncedHandleInputChange(TouchPanelZone.E7, HandleE7, currentInput[7]);
-                DebouncedHandleInputChange(TouchPanelZone.E8, HandleE8, currentInput[7]);
-            }
-
-            currentInput.CopyTo(_currentState);
-        }
-
-        [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public override void ReadData(byte[] data)
+        public override void ReadData(ReadOnlySpan<byte> currentInput)
         {
             // ensure buffer is aligned
-            if (data[0] != '(')
+            var headIndexs = GetPacketHeadIndexs(stackalloc int[currentInput.Length], currentInput);
+
+            if (headIndexs.IsEmpty)
             {
                 return;
             }
-
-            byte[] currentInput = new byte[BYTES_TO_READ];
-
-            Buffer.BlockCopy(data, data.Length - 9, currentInput, 0, 9);
-
-            if (ByteArraysEqual(_currentState, currentInput))
+            for (var i = 0; i < headIndexs.Length; i++)
             {
-                return;
-            }
+                var headIndex = headIndexs[i];
+                if (headIndex + BYTES_TO_READ > currentInput.Length)
+                {
+                    return;
+                }
+                var packet = currentInput.Slice(headIndexs[i], BYTES_TO_READ);
+                var tail = packet[BYTES_TO_READ - 1];
+                if (')' != tail)
+                {
+                    continue;
+                }
 
-            if (currentInput[1] != _currentState[1])
-            {
-                handleInputChange(TouchPanelZone.A1, currentInput[1], 0b00000001);
-                handleInputChange(TouchPanelZone.A2, currentInput[1], 0b00000010);
-                handleInputChange(TouchPanelZone.A3, currentInput[1], 0b00000100);
-                handleInputChange(TouchPanelZone.A4, currentInput[1], 0b00001000);
-                handleInputChange(TouchPanelZone.A5, currentInput[1], 0b00010000);
+                for (var j = 1; j < 8; j++)
+                {
+                    var @byte = packet[j];
+                    if (@byte == _currentState[j])
+                    {
+                        continue;
+                    }
+                    HandleInputChangeInternal((TouchPanelZone)(0 + ((j - 1) * 5)), @byte, BIT_1ST_MASK);
+                    HandleInputChangeInternal((TouchPanelZone)(1 + ((j - 1) * 5)), @byte, BIT_2ND_MASK);
+                    HandleInputChangeInternal((TouchPanelZone)(2 + ((j - 1) * 5)), @byte, BIT_3RD_MASK);
+                    HandleInputChangeInternal((TouchPanelZone)(3 + ((j - 1) * 5)), @byte, BIT_4TH_MASK);
+                    HandleInputChangeInternal((TouchPanelZone)(4 + ((j - 1) * 5)), @byte, BIT_5TH_MASK);
+                }
+                packet.CopyTo(_currentState);
             }
-
-            if (currentInput[2] != _currentState[2])
-            {
-                handleInputChange(TouchPanelZone.A6, currentInput[2], 0b00000001);
-                handleInputChange(TouchPanelZone.A7, currentInput[2], 0b00000010);
-                handleInputChange(TouchPanelZone.A8, currentInput[2], 0b00000100);
-                handleInputChange(TouchPanelZone.B1, currentInput[2], 0b00001000);
-                handleInputChange(TouchPanelZone.B2, currentInput[2], 0b00010000);
-            }
-
-            if (currentInput[3] != _currentState[3])
-            {
-                handleInputChange(TouchPanelZone.B3, currentInput[3], 0b00000001);
-                handleInputChange(TouchPanelZone.B4, currentInput[3], 0b00000010);
-                handleInputChange(TouchPanelZone.B5, currentInput[3], 0b00000100);
-                handleInputChange(TouchPanelZone.B6, currentInput[3], 0b00001000);
-                handleInputChange(TouchPanelZone.B7, currentInput[3], 0b00010000);
-            }
-
-            if (currentInput[4] != _currentState[4])
-            {
-                handleInputChange(TouchPanelZone.B8, currentInput[4], 0b00000001);
-                handleInputChange(TouchPanelZone.C1, currentInput[4], 0b00000010);
-                handleInputChange(TouchPanelZone.C2, currentInput[4], 0b00000100);
-                handleInputChange(TouchPanelZone.D1, currentInput[4], 0b00001000);
-                handleInputChange(TouchPanelZone.D2, currentInput[4], 0b00010000);
-            }
-
-            if (currentInput[5] != _currentState[5])
-            {
-                handleInputChange(TouchPanelZone.D3, currentInput[5], 0b00000001);
-                handleInputChange(TouchPanelZone.D4, currentInput[5], 0b00000010);
-                handleInputChange(TouchPanelZone.D5, currentInput[5], 0b00000100);
-                handleInputChange(TouchPanelZone.D6, currentInput[5], 0b00001000);
-                handleInputChange(TouchPanelZone.D7, currentInput[5], 0b00010000);
-            }
-            if (currentInput[6] != _currentState[6])
-            {
-                handleInputChange(TouchPanelZone.D8, currentInput[6], 0b00000001);
-                handleInputChange(TouchPanelZone.E1, currentInput[6], 0b00000010);
-                handleInputChange(TouchPanelZone.E2, currentInput[6], 0b00000100);
-                handleInputChange(TouchPanelZone.E3, currentInput[6], 0b00001000);
-                handleInputChange(TouchPanelZone.E4, currentInput[6], 0b00010000);
-            }
-
-            if (currentInput[7] != _currentState[7])
-            {
-                handleInputChange(TouchPanelZone.E5, currentInput[7], 0b00000001);
-                handleInputChange(TouchPanelZone.E6, currentInput[7], 0b00000010);
-                handleInputChange(TouchPanelZone.E7, currentInput[7], 0b00000100);
-                handleInputChange(TouchPanelZone.E8, currentInput[7], 0b00001000);
-            }
-
-            _currentState = currentInput;
         }
-
-        [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        private bool handleInputChange(TouchPanelZone zone, byte input, byte mask)
+        public override void ReadDataWithDebounce(ReadOnlySpan<byte> currentInput)
         {
-            var currentActiveState = _currentActiveStates[zone];
-            if (((input & mask) != 0) != currentActiveState)
+            // ensure buffer is aligned
+            var headIndexs = GetPacketHeadIndexs(stackalloc int[currentInput.Length], currentInput);
+
+            if (headIndexs.IsEmpty)
             {
-                _inputSubscriptions[zone]
-                (
-                    zone,
-                    currentActiveState ? InputState.Off : InputState.On
-                );
-                _currentActiveStates[zone] = !currentActiveState;
-                return true;
+                return;
             }
-            return false;
+            for (var i = 0; i < headIndexs.Length; i++)
+            {
+                var headIndex = headIndexs[i];
+                if (headIndex + BYTES_TO_READ > currentInput.Length)
+                {
+                    return;
+                }
+                var packet = currentInput.Slice(headIndexs[i], BYTES_TO_READ);
+                var tail = packet[BYTES_TO_READ - 1];
+                if (')' != tail)
+                {
+                    continue;
+                }
+
+                for (var j = 1; j < 8; j++)
+                {
+                    var @byte = packet[j];
+                    if (@byte == _currentState[j])
+                    {
+                        continue;
+                    }
+
+                    var zone1 = (TouchPanelZone)(0 + ((j - 1) * 5));
+                    var zone2 = (TouchPanelZone)(1 + ((j - 1) * 5));
+                    var zone3 = (TouchPanelZone)(2 + ((j - 1) * 5));
+                    var zone4 = (TouchPanelZone)(3 + ((j - 1) * 5));
+                    var zone5 = (TouchPanelZone)(4 + ((j - 1) * 5));
+
+                    DebounceHandle<TouchPanelZone, byte, byte>(zone1, _debounceCallbackHandler, zone1, @byte, BIT_1ST_MASK);
+                    DebounceHandle<TouchPanelZone, byte, byte>(zone2, _debounceCallbackHandler, zone2, @byte, BIT_2ND_MASK);
+                    DebounceHandle<TouchPanelZone, byte, byte>(zone3, _debounceCallbackHandler, zone3, @byte, BIT_3RD_MASK);
+                    DebounceHandle<TouchPanelZone, byte, byte>(zone4, _debounceCallbackHandler, zone4, @byte, BIT_4TH_MASK);
+                    DebounceHandle<TouchPanelZone, byte, byte>(zone5, _debounceCallbackHandler, zone5, @byte, BIT_5TH_MASK);
+                }
+                packet.CopyTo(_currentState);
+            }
+        }
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        private bool HandleInputChangeInternal(TouchPanelZone zone, byte input, byte mask)
+        {
+            // TODO: Remove this check this should not be happening its inefficient 
+            if (zone > TouchPanelZone.E8 || zone < TouchPanelZone.A1)
+            {
+                return false;
+            }
+
+            var oldState = _currentActiveStates[zone];
+            var newState = (input & mask) != 0;
+            var isChanged = oldState != newState;
+
+            if (isChanged)
+            {
+                var callback = _inputSubscriptions[zone];
+                callback(zone,
+                         newState ? InputState.On : InputState.Off);
+                _currentActiveStates[zone] = newState;
+            }
+
+            return isChanged;
         }
 
         public override void ResetState()
@@ -352,7 +285,12 @@ namespace MychIO.Device
             _currentState = NO_INPUT_PACKET;
         }
 
-        public override async Task Write<T>(params T[] interactions)
+        public override void Write<T>(params T[] interactions)
+        {
+            WriteAsync(interactions).Wait();
+        }
+
+        public override async Task WriteAsync<T>(params T[] interactions)
         {
             var commandBytes = interactions.OfType<TouchPanelCommand>()
             .SelectMany(command =>
@@ -369,28 +307,87 @@ namespace MychIO.Device
 
             foreach (var command in commandBytes)
             {
-                await _connection.Write(command);
+                await _connection.WriteAsync(command);
             }
         }
 
-        // source: https://stackoverflow.com/a/48599119
-        [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        private static bool ByteArraysEqual(ReadOnlySpan<byte> a1, ReadOnlySpan<byte> a2)
+        ReadOnlySpan<int> GetPacketHeadIndexs(Span<int> buffer, ReadOnlySpan<byte> packet)
         {
-            return a1.SequenceEqual(a2);
+            if (buffer.Length < packet.Length)
+            {
+                throw new ArgumentException();
+            }
+            int x = -1;
+            for (var y = 0; y < packet.Length; y++)
+            {
+                var @byte = packet[y];
+                if ('(' == @byte)
+                {
+                    buffer[++x] = y;
+                }
+            }
+            if (x == -1)
+                return ReadOnlySpan<int>.Empty;
+            return buffer.Slice(0, x + 1);
         }
-
         // Not used
         public override void ReadData(IntPtr intPtr)
         {
-            throw new NotImplementedException();
+            ThrowHelper.NotImplemented();
         }
-        public override void ReadDataDebounce(IntPtr intPtr) { }
-        public override Task OnDisconnectWrite()
+        public override void ReadDataWithDebounce(IntPtr intPtr)
+        {
+            ThrowHelper.NotImplemented();
+        }
+
+        public override void OnDisconnected()
+        {
+            return;
+        }
+
+        public override Task OnDisconnectedAsync()
         {
             return Task.CompletedTask;
         }
-
+        byte GetSensitivityValue(byte sensor, int sens)
+        {
+            if (sensor > 0x62 || sensor < 0x41)
+                return 0x28;
+            if (sensor < 0x49)
+            {
+                return sens switch
+                {
+                    -5 => 0x5A,
+                    -4 => 0x50,
+                    -3 => 0x46,
+                    -2 => 0x3C,
+                    -1 => 0x32,
+                    1 => 0x1E,
+                    2 => 0x1A,
+                    3 => 0x17,
+                    4 => 0x14,
+                    5 => 0x0A,
+                    _ => 0x28
+                };
+            }
+            else
+            {
+                return sens switch
+                {
+                    -5 => 0x46,
+                    -4 => 0x3C,
+                    -3 => 0x32,
+                    -2 => 0x28,
+                    -1 => 0x1E,
+                    1 => 0x14,
+                    2 => 0x0F,
+                    3 => 0x0A,
+                    4 => 0x05,
+                    5 => 0x01,
+                    _ => 0x01
+                };
+            }
+        }
 #if UNITY_EDITOR
         public static string formatAdxTouchPanelOutput(byte[] data)
         {

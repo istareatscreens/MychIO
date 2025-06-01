@@ -6,34 +6,44 @@ using MychIO.Generic;
 
 namespace MychIO.Device
 {
-    public interface IDevice : IIdentifier
+    public interface IDevice : IIdentifier, IDisposable
     {
+        string Name { get; }
+        bool CanRead { get; }
+        bool CanWrite { get; }
+        bool IsConnected { get; }
+        bool IsReading { get; }
+        IConnection Connection { get; }
+        DeviceClassification Classification { get; }
+        IConnectionProperties ConnectionProperties { get; }
+
         void ResetState();
-        void ReadData(byte[] data);
+        void ReadData(ReadOnlyMemory<byte> data);
+        void ReadData(ReadOnlySpan<byte> data);
         void ReadData(IntPtr intPtr);
-        void ReadDataDebounce(byte[] data);
-        void ReadDataDebounce(IntPtr intPtr);
-        Task OnStartWrite();
-        Task OnDisconnectWrite();
-        Task<IDevice> Connect();
-        Task Disconnect();
-        bool IsConnected();
-        bool IsReading();
+        void ReadDataWithDebounce(ReadOnlyMemory<byte> data);
+        void ReadDataWithDebounce(ReadOnlySpan<byte> data);
+        void ReadDataWithDebounce(IntPtr intPtr);
+        void OnConnected();
+        Task OnConnectedAsync();
+        void OnDisconnected();
+        Task OnDisconnectedAsync();
+        IDevice Connect();
+        Task<IDevice> ConnectAsync();
+        void Disconnect();
+        Task DisconnectAsync();
         void StopReading();
         void StartReading();
         bool CanConnect(IDevice device);
-        IConnection GetConnection();
-        Task Write<T>(params T[] interactions) where T: Enum;
-        DeviceClassification GetClassification();
-        IConnectionProperties GetConnectionProperties();
+        void Write<T>(params T[] interactions) where T: Enum;
+        Task WriteAsync<T>(params T[] interactions) where T : Enum;
     }
-    // Where T1 is the input type, e.g. A1, and T2 is the InputState
-    interface IDevice<T1, T2> : IDevice where T1 : Enum where T2 : Enum
+    // Where TZone is the input type, e.g. A1, and TState is the InputState
+    interface IDevice<TZone, TState> : IDevice where TZone : Enum where TState : Enum
     {
         // Callback has parameters Input Type, and Interaction State (e.g. On/Off) respectively
-        Task SetInputCallbacks(IDictionary<T1, Action<T1, T2>> inputSubscriptions);
-        void AddInputCallback(T1 interactionZone, Action<T1, T2> callback);
-        string DeviceName();
-
+        void SetInputCallbacks(IDictionary<TZone, Action<TZone, TState>> inputSubscriptions);
+        Task SetInputCallbacksAsync(IDictionary<TZone, Action<TZone, TState>> inputSubscriptions);
+        void AddInputCallback(TZone interactionZone, Action<TZone, TState> callback);
     }
 }

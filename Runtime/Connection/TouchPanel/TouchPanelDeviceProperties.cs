@@ -18,7 +18,6 @@ namespace MychIO.Connection.TouchPanelDevice
         public TouchPanelDeviceProperties(
             TouchPanelDeviceProperties existing,
             int? pollingRateMs = null,
-            // Device Class specific properties
             int? debounceTimeMs = 0
         ) : base(debounceTimeMs ?? existing.DebounceTimeMs)
         {
@@ -26,6 +25,9 @@ namespace MychIO.Connection.TouchPanelDevice
             PopulatePropertiesFromFields();
         }
 
-        public override ConnectionType GetConnectionType() => ConnectionType.TouchPanelDevice;
+        public override ConnectionType ConnectionType
+        {
+            get => ConnectionType.TouchPanelDevice;
+        }
     }
 }

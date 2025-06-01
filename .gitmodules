@@ -1,7 +1,7 @@
 # tag (Active development)
 [submodule ".PluginSource/UnityHidApiPlugin"]
 	path = .PluginSource/UnityHidApiPlugin
-	url = https://github.com/istareatscreens/UnityHidApiPlugin
+	url = https://github.com/istareatscreens/UnityHidApiPlugin.git
 	branch = master
 [submodule ".PluginSource/UnityTouchApiPlugin"]
 	path = .PluginSource/UnityTouchApiPlugin
