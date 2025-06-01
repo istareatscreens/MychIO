@@ -160,10 +160,10 @@ namespace MychIO.Device
                         await _connection.WriteAsync(Encoding.UTF8.GetBytes($"{{{"L"}{(char)a}k{(char)value}}}"));
                     }
                 }
-                catch(Exception e)
+                catch (Exception e)
                 {
-                    _manager.handleEvent(Event.IOEventType.Debug, 
-                                         DeviceClassification.TouchPanel, 
+                    _manager.handleEvent(Event.IOEventType.Debug,
+                                         DeviceClassification.TouchPanel,
                                          $"An error occurred while setting sensitivity:\n{e}");
                 }
             }
@@ -198,7 +198,9 @@ namespace MychIO.Device
                 {
                     var @byte = packet[j];
                     if (@byte == _currentState[j])
+                    {
                         continue;
+                    }
                     HandleInputChangeInternal((TouchPanelZone)(0 + ((j - 1) * 5)), @byte, BIT_1ST_MASK);
                     HandleInputChangeInternal((TouchPanelZone)(1 + ((j - 1) * 5)), @byte, BIT_2ND_MASK);
                     HandleInputChangeInternal((TouchPanelZone)(2 + ((j - 1) * 5)), @byte, BIT_3RD_MASK);
@@ -305,7 +307,7 @@ namespace MychIO.Device
 
         ReadOnlySpan<int> GetPacketHeadIndexs(Span<int> buffer, ReadOnlySpan<byte> packet)
         {
-            if(buffer.Length < packet.Length)
+            if (buffer.Length < packet.Length)
             {
                 throw new ArgumentException();
             }

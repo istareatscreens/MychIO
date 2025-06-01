@@ -9,10 +9,10 @@ using MychIO.Helper;
 namespace MychIO.Device
 {
     // Important class cannot have more than 1 constructor (see Device Factory)
-    public abstract partial class Device<TZone, TState, TConnProps> : IDevice<TZone, TState> 
+    public abstract partial class Device<TZone, TState, TConnProps> : IDevice<TZone, TState>
         where TZone : Enum
         where TState : Enum
-        where TConnProps : IConnectionProperties 
+        where TConnProps : IConnectionProperties
     {
         public abstract string Name { get; }
         public abstract bool CanRead { get; }
@@ -21,7 +21,7 @@ namespace MychIO.Device
         {
             get => _connection.IsReading;
         }
-        
+
         public virtual bool IsConnected
         {
             get => ThrowHelper.NotImplemented<bool>("Should be implemented by base class");
@@ -88,7 +88,7 @@ namespace MychIO.Device
             }
 
             _debounceThreshold = _connectionProperties.GetDebounceThreshold();
-            foreach(TZone zone in Enum.GetValues(typeof(TZone)))
+            foreach (TZone zone in Enum.GetValues(typeof(TZone)))
             {
                 _lastInputTriggerTimes[zone] = TimeSpan.Zero;
             }
@@ -169,9 +169,6 @@ namespace MychIO.Device
             return Task.CompletedTask;
         }
 
-
-
-
         public void StopReading()
         {
             if (IsReading)
@@ -227,11 +224,11 @@ namespace MychIO.Device
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         protected void DebounceHandle<TParam1, TParam2>(TZone zone,
                                                         DebounceCallbackHandler<TParam1, TParam2> callback,
-                                                        TParam1 param1, 
+                                                        TParam1 param1,
                                                         TParam2 param2)
         {
             var now = TimeSpan.FromTicks(_timeProvider.ElapsedTicks);
-            if (DebounceCore(zone, now))
+            if (DebounceThresholdNotReached(zone, now))
             {
                 return;
             }
@@ -244,11 +241,11 @@ namespace MychIO.Device
         protected void DebounceHandle<TParam1, TParam2, TParam3>(TZone zone,
                                                                  DebounceCallbackHandler<TParam1, TParam2, TParam3> callback,
                                                                  TParam1 param1,
-                                                                 TParam2 param2, 
+                                                                 TParam2 param2,
                                                                  TParam3 param3)
         {
             var now = TimeSpan.FromTicks(_timeProvider.ElapsedTicks);
-            if (DebounceCore(zone, now))
+            if (DebounceThresholdNotReached(zone, now))
             {
                 return;
             }
@@ -263,7 +260,7 @@ namespace MychIO.Device
         /// </summary>
         /// <param name="zone"></param>
         /// <returns></returns>
-        bool DebounceCore(TZone zone, TimeSpan now)
+        bool DebounceThresholdNotReached(TZone zone, TimeSpan now)
         {
             var lastTriggerTime = _lastInputTriggerTimes[zone];
             var diff = now - lastTriggerTime;
