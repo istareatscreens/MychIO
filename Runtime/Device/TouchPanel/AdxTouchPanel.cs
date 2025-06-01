@@ -236,6 +236,11 @@ namespace MychIO.Device
                 for (var j = 1; j < 8; j++)
                 {
                     var @byte = packet[j];
+                    if (@byte == _currentState[j])
+                    {
+                        continue;
+                    }
+
                     var zone1 = (TouchPanelZone)(0 + ((j - 1) * 5));
                     var zone2 = (TouchPanelZone)(1 + ((j - 1) * 5));
                     var zone3 = (TouchPanelZone)(2 + ((j - 1) * 5));
@@ -243,10 +248,10 @@ namespace MychIO.Device
                     var zone5 = (TouchPanelZone)(4 + ((j - 1) * 5));
 
                     DebounceHandle<TouchPanelZone, byte, byte>(zone1, _debounceCallbackHandler, zone1, @byte, BIT_1ST_MASK);
-                    DebounceHandle<TouchPanelZone, byte, byte>(zone2, _debounceCallbackHandler, zone1, @byte, BIT_2ND_MASK);
-                    DebounceHandle<TouchPanelZone, byte, byte>(zone3, _debounceCallbackHandler, zone1, @byte, BIT_3RD_MASK);
-                    DebounceHandle<TouchPanelZone, byte, byte>(zone4, _debounceCallbackHandler, zone1, @byte, BIT_4TH_MASK);
-                    DebounceHandle<TouchPanelZone, byte, byte>(zone5, _debounceCallbackHandler, zone1, @byte, BIT_5TH_MASK);
+                    DebounceHandle<TouchPanelZone, byte, byte>(zone2, _debounceCallbackHandler, zone2, @byte, BIT_2ND_MASK);
+                    DebounceHandle<TouchPanelZone, byte, byte>(zone3, _debounceCallbackHandler, zone3, @byte, BIT_3RD_MASK);
+                    DebounceHandle<TouchPanelZone, byte, byte>(zone4, _debounceCallbackHandler, zone4, @byte, BIT_4TH_MASK);
+                    DebounceHandle<TouchPanelZone, byte, byte>(zone5, _debounceCallbackHandler, zone5, @byte, BIT_5TH_MASK);
                 }
                 packet.CopyTo(_currentState);
             }
@@ -254,6 +259,7 @@ namespace MychIO.Device
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         private bool HandleInputChangeInternal(TouchPanelZone zone, byte input, byte mask)
         {
+            // TODO: Remove this check this should not be happening its inefficient 
             if (zone > TouchPanelZone.E8 || zone < TouchPanelZone.A1)
             {
                 return false;

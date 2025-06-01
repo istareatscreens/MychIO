@@ -48,9 +48,12 @@ namespace MychIO.Device
             get => _id;
             set => _id = value;
         }
-        readonly Dictionary<TZone, TimeSpan> _lastInputTriggerTimes = new();
-        readonly TimeSpan _debounceThreshold = TimeSpan.Zero;
-        readonly Stopwatch _timeProvider = new Stopwatch();
+
+        // Debounce Properties
+        protected Dictionary<TZone, TimeSpan> _lastInputTriggerTimes = new();
+        protected readonly TimeSpan _debounceThreshold = TimeSpan.Zero;
+        protected readonly Stopwatch _timeProvider = new();
+
         protected readonly IOManager _manager;
         protected readonly IConnectionProperties _connectionProperties;
         protected IDictionary<TZone, Action<TZone, TState>> _inputSubscriptions;
@@ -242,7 +245,8 @@ namespace MychIO.Device
                                                                  DebounceCallbackHandler<TParam1, TParam2, TParam3> callback,
                                                                  TParam1 param1,
                                                                  TParam2 param2,
-                                                                 TParam3 param3)
+                                                                 TParam3 param3
+                                                                 )
         {
             var now = TimeSpan.FromTicks(_timeProvider.ElapsedTicks);
             if (DebounceThresholdNotReached(zone, now))
@@ -260,9 +264,13 @@ namespace MychIO.Device
         /// </summary>
         /// <param name="zone"></param>
         /// <returns></returns>
-        bool DebounceThresholdNotReached(TZone zone, TimeSpan now)
+        protected bool DebounceThresholdNotReached(TZone zone, TimeSpan now)
         {
-            var lastTriggerTime = _lastInputTriggerTimes[zone];
+            // Have to do this because zones outside of the Enum range are being sent
+            if (!_lastInputTriggerTimes.TryGetValue(zone, out var lastTriggerTime))
+            {
+                return true;
+            }
             var diff = now - lastTriggerTime;
 
             return diff < _debounceThreshold;
