@@ -1,12 +1,36 @@
 using System;
+using System.Collections.Generic;
 using System.Linq;
 using System.Text;
 
 namespace MychIO.Helper
 {
-    // Mainly functions for debugging
     public class HelperFunctions
     {
+
+
+        public static string GenerateUniqueHashFromStrings(Array strings)
+        {
+            if (strings == null) throw new ArgumentNullException(nameof(strings));
+
+            var stringList = new List<string>();
+            foreach (var s in strings)
+            {
+                if (s is string str)
+                    stringList.Add(str);
+            }
+            var uniqueSorted = new SortedSet<string>(stringList);
+
+            var concatenated = string.Join("|", uniqueSorted);
+
+            using (var md5 = System.Security.Cryptography.MD5.Create())
+            {
+                var inputBytes = System.Text.Encoding.UTF8.GetBytes(concatenated);
+                var hashBytes = md5.ComputeHash(inputBytes);
+                return BitConverter.ToString(hashBytes).Replace("-", "").ToLowerInvariant();
+            }
+        }
+
 
         public static string ConvertByteArrayToBitString(byte[] byteArray)
         {

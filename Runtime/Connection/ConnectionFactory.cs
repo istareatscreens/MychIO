@@ -18,8 +18,22 @@ namespace MychIO.Connection
             { ConnectionType.TouchPanelDevice, typeof(TouchPanelDeviceConnection) }
             // Add other connections here...
         };
+
+        // Map of ConnectionProperties Unique String -> created connections
+        // TODO: Add cleanup of this dictionary when no device holds the connection
+        private static Dictionary<string, IConnection> spawnedConnections = new();
+
+
         internal static IConnection GetConnection(IDevice device, IConnectionProperties connectionProperties, IOManager manager)
         {
+
+
+            if (spawnedConnections.TryGetValue(connectionProperties.UniqueConnectionIdentifier, out var connection))
+            {
+                // add logic to add device
+                return connection;
+            }
+
 
             var deviceType = device.GetType();
             var connectionTypeMethod = deviceType
@@ -45,8 +59,7 @@ namespace MychIO.Connection
                 throw new Exception($"No suitable constructor found for device type {connectionClassType}");
             }
 
-            return (IConnection)constructor.Invoke(new object[] { device, connectionProperties, manager });
-
+            return spawnedConnections[connectionProperties.UniqueConnectionIdentifier] = (IConnection)constructor.Invoke(new object[] { device, connectionProperties, manager });
         }
     }
 }

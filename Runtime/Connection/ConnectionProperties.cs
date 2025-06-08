@@ -27,14 +27,18 @@ namespace MychIO.Connection
         }
         public abstract ConnectionType ConnectionType { get; }
 
+        // Used for linking ConnectionProperties to Connection Objects
+        public string UniqueConnectionIdentifier { get; }
+
         private Queue<string> _errors = new();
         private IDictionary<string, dynamic> _properties = new Dictionary<string, dynamic>();
 
         public int DebounceTimeMs = 0;
 
-        public ConnectionProperties(int debounceTimeMs = 0)
+        public ConnectionProperties(string uniqueConnectionIdentifier, int debounceTimeMs = 0)
         {
             DebounceTimeMs = debounceTimeMs;
+            UniqueConnectionIdentifier = uniqueConnectionIdentifier;
         }
 
         public IConnectionProperties UpdateProperties(IDictionary<string, dynamic> updateProperties)
@@ -93,6 +97,7 @@ namespace MychIO.Connection
                 }
             }
         }
+
         public TimeSpan GetDebounceThreshold()
         {
             return TimeSpan.FromMilliseconds(DebounceTimeMs);

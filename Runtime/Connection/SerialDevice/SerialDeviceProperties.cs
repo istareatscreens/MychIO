@@ -1,3 +1,7 @@
+using System.Collections.Generic;
+using System.Linq.Expressions;
+using MychIO.Helper;
+
 namespace MychIO.Connection.SerialDevice
 {
     public class SerialDeviceProperties : ConnectionProperties
@@ -35,7 +39,25 @@ namespace MychIO.Connection.SerialDevice
             bool dtr = false,
             bool rts = false,
             int? debounceTimeMs = 0
-        ) : base(debounceTimeMs ?? 0)
+        ) : base(
+            GenerateUniqueIdentifier(
+                comPortNumber,
+                pollingRateMs,
+                bufferByteLength,
+                readTimeoutMS,
+                writeTimeoutMS,
+                portNumber,
+                baudRate,
+                stopBit,
+                parityBit,
+                dataBits,
+                handshake,
+                dtr,
+                rts,
+                debounceTimeMs ?? 0
+            ),
+            debounceTimeMs ?? 0
+        )
         {
             ComPortNumber = comPortNumber;
             PollTimeoutMs = pollingRateMs;
@@ -70,7 +92,24 @@ namespace MychIO.Connection.SerialDevice
             bool? dtr = null,
             bool? rts = null,
             int? debounceTimeMs = 0
-        ) : base(debounceTimeMs ?? existing.DebounceTimeMs) 
+        ) : base(
+            GenerateUniqueIdentifier(
+             comPortNumber ?? existing.ComPortNumber,
+             pollingRateMs ?? existing.PollTimeoutMs,
+             bufferByteLength ?? existing.BufferByteLength,
+             readTimeoutMS ?? existing.ReadTimeoutMS,
+             writeTimeoutMS ?? existing.WriteTimeoutMS,
+             portNumber ?? existing.PortNumber,
+             baudRate ?? existing.BaudRate,
+             stopBit ?? existing.StopBit,
+             parityBit ?? existing.ParityBit,
+             dataBits ?? existing.DataBits,
+             handshake ?? existing.Handshake,
+             dtr ?? existing.Dtr,
+             rts ?? existing.Rts
+            ),
+            debounceTimeMs ?? 0
+        )
         {
             ComPortNumber = comPortNumber ?? existing.ComPortNumber;
             PollTimeoutMs = pollingRateMs ?? existing.PollTimeoutMs;
@@ -86,6 +125,41 @@ namespace MychIO.Connection.SerialDevice
             Dtr = dtr ?? existing.Dtr;
             Rts = rts ?? existing.Rts;
             PopulatePropertiesFromFields();
+        }
+
+        private static string GenerateUniqueIdentifier(
+            string comPortNumber,
+            int pollingRateMs,
+            int bufferByteLength,
+            int readTimeoutMS,
+            int writeTimeoutMS,
+            int portNumber,
+            BaudRate baudRate,
+            StopBits stopBit,
+            Parity parityBit,
+            DataBits dataBits,
+            Handshake handshake,
+            bool dtr,
+            bool rts,
+            int? debounceTimeMs = 0
+        )
+        {
+            return HelperFunctions.GenerateUniqueHashFromStrings(new string[] {
+                comPortNumber.ToString(),
+                pollingRateMs.ToString(),
+                bufferByteLength.ToString(),
+                readTimeoutMS.ToString(),
+                writeTimeoutMS.ToString(),
+                portNumber.ToString(),
+                baudRate.ToString(),
+                stopBit.ToString(),
+                parityBit.ToString(),
+                dataBits.ToString(),
+                handshake.ToString(),
+                dtr.ToString(),
+                rts.ToString(),
+                debounceTimeMs.HasValue ? debounceTimeMs.Value.ToString() : "0"
+            });
         }
 
         public override ConnectionType ConnectionType
