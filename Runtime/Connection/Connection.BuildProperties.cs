@@ -1,4 +1,5 @@
 using System;
+using MychIO.Device;
 
 namespace MychIO.Connection
 {
@@ -8,7 +9,6 @@ namespace MychIO.Connection
         {
             throw new NotImplementedException("Error GetConnectionType method not overwitten in base class");
         }
-
     }
 
 }

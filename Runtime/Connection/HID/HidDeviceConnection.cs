@@ -136,7 +136,7 @@ namespace MychIO.Connection.HidDevice
             _eventCallbackHandle = GCHandle.Alloc(eventReceivedCallback);
             Read();
 
-            if(IsReading)
+            if (IsReading)
             {
                 _manager.handleEvent(IOEventType.Attach, _device.Classification, _device.GetType().ToString() + " Device is running properly");
             }
@@ -148,7 +148,7 @@ namespace MychIO.Connection.HidDevice
         private UnityHidApiPlugin.DataCallbackDelegate GetRecieveDataFunction()
         {
             var dt = _connectionProperties.GetDebounceThreshold();
-            if(dt.TotalMilliseconds > 0)
+            if (dt.TotalMilliseconds > 0)
             {
                 return new UnityHidApiPlugin.DataCallbackDelegate(_device.ReadDataWithDebounce);
             }

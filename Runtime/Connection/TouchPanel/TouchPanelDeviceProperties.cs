@@ -8,7 +8,7 @@ namespace MychIO.Connection.TouchPanelDevice
         public TouchPanelDeviceProperties(
             int pollingRateMs = 2,
             int? debounceTimeMs = 0
-        ) : base(debounceTimeMs ?? 0)
+        ) : base("NOT IMPLEMENTED", debounceTimeMs ?? 0)
         {
             PollingRateMs = pollingRateMs;
             PopulatePropertiesFromFields();
@@ -19,7 +19,7 @@ namespace MychIO.Connection.TouchPanelDevice
             TouchPanelDeviceProperties existing,
             int? pollingRateMs = null,
             int? debounceTimeMs = 0
-        ) : base(debounceTimeMs ?? existing.DebounceTimeMs)
+        ) : base("NOT IMPLEMENTED", debounceTimeMs ?? existing.DebounceTimeMs)
         {
             PollingRateMs = pollingRateMs ?? existing.PollingRateMs;
             PopulatePropertiesFromFields();

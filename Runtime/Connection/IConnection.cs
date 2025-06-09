@@ -1,9 +1,10 @@
 using System;
 using System.Threading.Tasks;
+using MychIO.Device;
 
 namespace MychIO.Connection
 {
-    public interface IConnection: IDisposable
+    public interface IConnection : IDisposable
     {
         bool IsConnected { get; }
         bool IsReading { get; }
