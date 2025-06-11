@@ -1,6 +1,9 @@
 using System;
+using System.Collections;
+using System.Collections.Generic;
 using System.IO;
 using System.IO.Ports;
+using System.Linq;
 using System.Runtime.CompilerServices;
 using System.Threading;
 using System.Threading.Tasks;
@@ -31,10 +34,10 @@ namespace MychIO.Connection.SerialDevice
         private CancellationTokenSource _cts = new CancellationTokenSource();
 
         ReceiveDataHandler _onReceiveData;
-        public SerialDeviceConnection(IDevice device, IConnectionProperties connectionProperties, IOManager manager) :
-         base(device, connectionProperties, manager)
+        public SerialDeviceConnection(IList<IDevice> devices, IConnectionProperties connectionProperties, IOManager manager) :
+         base(devices, connectionProperties, manager)
         {
-            _onReceiveData = _device.ReadData;
+            _onReceiveData = GetReadDataReceiver();
         }
 
         public override void Connect()
@@ -78,7 +81,7 @@ namespace MychIO.Connection.SerialDevice
 
             if (!IsConnected)
             {
-                _manager.handleEvent(IOEventType.ConnectionError, _device.Classification, _device.GetType().ToString() + " Device lost COM port connection");
+                _manager.handleEvent(IOEventType.ConnectionError, _classification, _types + " Device lost COM port connection");
                 return Task.CompletedTask;
             }
 
@@ -86,7 +89,7 @@ namespace MychIO.Connection.SerialDevice
 
             if (IsReading)
             {
-                _manager.handleEvent(IOEventType.Attach, _device.Classification, _device.GetType().ToString() + " Device connected");
+                _manager.handleEvent(IOEventType.Attach, _classification, _types + " Device connected");
             }
 
             return Task.CompletedTask;
@@ -95,20 +98,21 @@ namespace MychIO.Connection.SerialDevice
         {
             DisconnectAsync().Wait();
         }
+
         public override async Task DisconnectAsync()
         {
-            _device.ResetState();
+            OnDeviceResetState();
             if (IsReading)
             {
                 await StopReadPollingAsync();
             }
             if (IsConnected)
             {
-                await _device.OnDisconnectedAsync();
+                await OnDeviceDisconnectedAsync();
                 _serialPort?.Close();
             }
             _serialPort = null;
-            _manager.handleEvent(IOEventType.Detach, _device.Classification, _device.GetType().ToString() + "device disconnected");
+            _manager.handleEvent(IOEventType.Detach, _classification, _types + "device disconnected");
         }
 
         public override void Write(ReadOnlySpan<byte> data)
@@ -157,7 +161,7 @@ namespace MychIO.Connection.SerialDevice
             if (!serialSession.IsOpen)
             {
                 serialSession.Open();
-                _device.OnConnected();
+                OnDeviceConnected();
             }
         }
         [MethodImpl(MethodImplOptions.NoInlining)]
@@ -183,15 +187,7 @@ namespace MychIO.Connection.SerialDevice
             {
                 return;
             }
-            var dt = _connectionProperties.GetDebounceThreshold();
-            if (dt.TotalMilliseconds > 0)
-            {
-                _onReceiveData = _device.ReadDataWithDebounce;
-            }
-            else
-            {
-                _onReceiveData = _device.ReadData;
-            }
+            _onReceiveData = GetReadDataReceiver();
             _readDataLoop = Task.Factory.StartNew(() =>
             {
                 ReadDataLoop(_onReceiveData);
@@ -199,7 +195,7 @@ namespace MychIO.Connection.SerialDevice
         }
         void ReadDataLoop(ReceiveDataHandler receiveDataHandler)
         {
-            _device.OnConnected();
+            OnDeviceConnected();
             try
             {
                 var token = _cts.Token;
@@ -218,7 +214,7 @@ namespace MychIO.Connection.SerialDevice
             catch (Exception e)
             {
                 // Throw event here potentially in the future for now just disconnect
-                _manager.handleEvent(IOEventType.ConnectionError, _device.Classification, _device.GetType().ToString() + "device connection failed due to following exception: " + e);
+                _manager.handleEvent(IOEventType.ConnectionError, _classification, _types + "device connection failed due to following exception: " + e);
                 Disconnect();
             }
         }
@@ -229,8 +225,38 @@ namespace MychIO.Connection.SerialDevice
         }
         public override void Dispose()
         {
-            _device?.OnDisconnected();
+            OnDeviceDisconnected();
             _cts.Cancel();
+        }
+
+        private ReceiveDataHandler GetReadDataReceiver()
+        {
+            var dt = _connectionProperties.GetDebounceThreshold();
+
+            if (dt.TotalMilliseconds > 0)
+            {
+                return (0 == _devices.Count) ?
+
+             (ReadOnlySpan<byte> data) =>
+                {
+                    foreach (var device in _devices)
+                    {
+                        device.ReadDataWithDebounce(data);
+                    }
+                }
+                : _devices.First().ReadDataWithDebounce;
+
+            }
+
+            return (0 == _devices.Count) ?
+             (ReadOnlySpan<byte> data) =>
+                {
+                    foreach (var device in _devices)
+                    {
+                        device.ReadData(data);
+                    }
+                }
+            : _devices.First().ReadData;
         }
     }
     static class SerialPortExtensions

@@ -210,6 +210,12 @@ Where,
 - connectionProperties - stores the properties specific to their connection interface. These can be used to overwrite the default device connection properties. These properties implement the `MychIO.Connection.IConnectionProperties` interface and can be easily serialized/unserialized using the instantiated IConnection class (IDictionary<string, dynamic> <==> concrete IConnection object)
 - inputSubscriptions - Callbacks that are triggered by controller interaction mapped by device interaction zone enum
 
+<b>IMPORTANT</b> After devices have been added using the methods listed above you must call the IOManager ConnectDevices() method. This will connect all devices loaded. Note this was added to support multiple devices using the same connection.
+
+```C#
+public void ConnectDevices()
+```
+
 ## Connection/Device Properties
 
 The current implemented devices have the following connection objects:

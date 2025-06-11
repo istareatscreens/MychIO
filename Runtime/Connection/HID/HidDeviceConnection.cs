@@ -1,9 +1,12 @@
 using System;
+using System.Collections.Generic;
+using System.Linq;
 using System.Runtime.InteropServices;
 using System.Threading.Tasks;
 using MychIO.Device;
 using MychIO.Event;
 using MychIO.Helper;
+using UnityEditor.DeviceSimulation;
 
 namespace MychIO.Connection.HidDevice
 {
@@ -27,25 +30,29 @@ namespace MychIO.Connection.HidDevice
         // Holds C++ plugin object reference
         private IntPtr _pluginHandle;
 
-        public HidDeviceConnection(IDevice device, IConnectionProperties connectionProperties, IOManager manager) :
-         base(device, connectionProperties, manager)
+
+        public HidDeviceConnection(List<IDevice> devices, IConnectionProperties connectionProperties, IOManager manager) :
+         base(devices, connectionProperties, manager)
         {
 
             ValidateConnectionProperties<HidDeviceProperties>();
 
             if (1 != UnityHidApiPlugin.PluginLoaded())
             {
-                manager.handleEvent(
-                    IOEventType.ConnectionError,
-                        _device.Classification,
-                        "Error loading UnityHidApiPlugin plugin"
-                );
+                foreach (var device in devices)
+                {
+                    manager.handleEvent(
+                        IOEventType.ConnectionError,
+                            device.Classification,
+                            "Error loading UnityHidApiPlugin plugin"
+                    );
+                }
             }
 
             // UnityHidApiPlugin.DisposeByClassification((int)device.GetClassification());
             HidDeviceProperties properties = (HidDeviceProperties)connectionProperties;
             _pluginHandle = UnityHidApiPlugin.Initialize(
-                (int)device.Classification,
+                (int)_classification,
                 properties.VendorId,
                 properties.ProductId,
                 properties.BufferSize,
@@ -57,7 +64,7 @@ namespace MychIO.Connection.HidDevice
             {
                 manager.handleEvent(
                     IOEventType.ConnectionError,
-                    _device.Classification,
+                    _classification,
                     "Error Initializing HID Connection plugin, please recreate this device"
                 );
 
@@ -84,7 +91,7 @@ namespace MychIO.Connection.HidDevice
             }
             try
             {
-                _device?.OnDisconnected();
+                OnDeviceDisconnected();
             }
             catch { }
         }
@@ -120,13 +127,13 @@ namespace MychIO.Connection.HidDevice
             var eventReceivedCallback = new UnityHidApiPlugin.EventCallbackDelegate(
                 (string message) =>
                 {
-                    _manager.handleEvent(IOEventType.HidDeviceReadError, _device.Classification, _device.GetType().ToString() + " Error: " + message);
+                    _manager.handleEvent(IOEventType.HidDeviceReadError, _classification, _types + " Error: " + message);
                 }
             );
 
             if (!UnityHidApiPlugin.Connect(_pluginHandle, eventReceivedCallback))
             {
-                _manager.handleEvent(IOEventType.ConnectionError, _device.Classification, _device.GetType().ToString() + " Failed to Connect");
+                _manager.handleEvent(IOEventType.ConnectionError, _classification, _types + " Failed to Connect");
             }
 
             var dataReceivedCallback = GetRecieveDataFunction();
@@ -138,7 +145,7 @@ namespace MychIO.Connection.HidDevice
 
             if (IsReading)
             {
-                _manager.handleEvent(IOEventType.Attach, _device.Classification, _device.GetType().ToString() + " Device is running properly");
+                _manager.handleEvent(IOEventType.Attach, _classification, _types + " Device is running properly");
             }
 
             return Task.CompletedTask;
@@ -148,14 +155,41 @@ namespace MychIO.Connection.HidDevice
         private UnityHidApiPlugin.DataCallbackDelegate GetRecieveDataFunction()
         {
             var dt = _connectionProperties.GetDebounceThreshold();
+            if (1 == _devices.Count)
+            {
+                var device = _devices.First();
+                if (dt.TotalMilliseconds > 0)
+                {
+                    return new UnityHidApiPlugin.DataCallbackDelegate(device.ReadDataWithDebounce);
+                }
+                else
+                {
+                    return new UnityHidApiPlugin.DataCallbackDelegate(device.ReadData);
+                }
+            }
+
             if (dt.TotalMilliseconds > 0)
             {
-                return new UnityHidApiPlugin.DataCallbackDelegate(_device.ReadDataWithDebounce);
+                return new UnityHidApiPlugin.DataCallbackDelegate((IntPtr data) =>
+                {
+                    foreach (var device in _devices)
+                    {
+                        device.ReadDataWithDebounce(data);
+                    }
+                });
             }
             else
             {
-                return new UnityHidApiPlugin.DataCallbackDelegate(_device.ReadData);
+                return new UnityHidApiPlugin.DataCallbackDelegate((IntPtr data) =>
+                {
+                    foreach (var device in _devices)
+                    {
+                        device.ReadData(data);
+                    }
+                });
             }
+
+
         }
         public override void Disconnect()
         {
@@ -165,7 +199,7 @@ namespace MychIO.Connection.HidDevice
         {
             if (IsConnected)
             {
-                await _device.OnDisconnectedAsync();
+                await OnDeviceDisconnectedAsync();
             }
             UnityHidApiPlugin.Disconnect(_pluginHandle);
         }
@@ -180,7 +214,7 @@ namespace MychIO.Connection.HidDevice
 
             if (!UnityHidApiPlugin.IsReading(_pluginHandle))
             {
-                _manager.handleEvent(IOEventType.ConnectionError, _device.Classification, _device.GetType().ToString() + " Error: failed to start reading from device");
+                _manager.handleEvent(IOEventType.ConnectionError, _classification, _types + " Error: failed to start reading from device");
             }
         }
         public override void StopReading()
