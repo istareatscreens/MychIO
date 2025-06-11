@@ -3,10 +3,11 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
+using MychIO.Helper;
 
 namespace MychIO.Connection.SerialDevice
 {
-    public class AdxTouchPanelProperties: SerialDeviceProperties
+    public class AdxTouchPanelProperties : SerialDeviceProperties
     {
         public bool SensitivityOverride;
         public int Sensitivity;
@@ -29,16 +30,16 @@ namespace MychIO.Connection.SerialDevice
             int sensitivity = 0,
             int? debounceTimeMs = 0
         ) : base(comPortNumber,
-            pollingRateMs, 
-            bufferByteLength, 
+            pollingRateMs,
+            bufferByteLength,
             readTimeoutMS,
-            writeTimeoutMS, 
-            portNumber, 
-            baudRate, 
-            stopBit, 
-            parityBit, 
-            dataBits, 
-            handshake, 
+            writeTimeoutMS,
+            portNumber,
+            baudRate,
+            stopBit,
+            parityBit,
+            dataBits,
+            handshake,
             dtr,
             rts,
             debounceTimeMs)

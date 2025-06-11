@@ -1,3 +1,5 @@
+using MychIO.Helper;
+
 namespace MychIO.Connection.HidDevice
 {
     public class HidDeviceProperties : ConnectionProperties
@@ -19,7 +21,18 @@ namespace MychIO.Connection.HidDevice
             int bytesToRead = 64,
             int pollingRateMs = 0,
             int? debounceTimeMs = 0
-        ) : base(debounceTimeMs ?? 0)
+        ) : base(
+            GenerateUniqueIdentifier(
+                productId,
+                vendorId,
+                bufferSize,
+                leftBytesToTruncate,
+                bytesToRead,
+                pollingRateMs,
+                debounceTimeMs ?? 0
+            ),
+            debounceTimeMs ?? 0
+        )
         {
             ProductId = productId;
             VendorId = vendorId;
@@ -40,7 +53,18 @@ namespace MychIO.Connection.HidDevice
             int? bytesToRead = null,
             int? pollingRateMs = null,
             int? debounceTimeMs = 0
-        ) : base(debounceTimeMs ?? existing.DebounceTimeMs)
+        ) : base(
+            GenerateUniqueIdentifier(
+                productId ?? existing.ProductId,
+                vendorId ?? existing.VendorId,
+                bufferSize ?? existing.BufferSize,
+                leftBytesToTruncate ?? existing.LeftBytesToTruncate,
+                bytesToRead ?? existing.BytesToRead,
+                pollingRateMs ?? existing.PollingRateMs,
+                debounceTimeMs ?? 0
+            ),
+                debounceTimeMs ?? 0
+            )
         {
             ProductId = productId ?? existing.ProductId;
             VendorId = vendorId ?? existing.VendorId;
@@ -51,6 +75,26 @@ namespace MychIO.Connection.HidDevice
             PopulatePropertiesFromFields();
         }
 
+        private static string GenerateUniqueIdentifier(
+            int productId,
+            int vendorId,
+            int bufferSize,
+            int leftBytesToTruncate,
+            int bytesToRead,
+            int pollingRateMs,
+            int debounceTimeMs
+        )
+        {
+            return HelperFunctions.GenerateUniqueHashFromStrings(new string[] {
+                productId.ToString(),
+                vendorId.ToString(),
+                bufferSize.ToString(),
+                leftBytesToTruncate.ToString(),
+                bytesToRead.ToString(),
+                pollingRateMs.ToString(),
+                debounceTimeMs.ToString()
+            });
+        }
 
         public override ConnectionType ConnectionType
         {

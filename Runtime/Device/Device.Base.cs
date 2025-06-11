@@ -57,7 +57,8 @@ namespace MychIO.Device
         protected readonly IOManager _manager;
         protected readonly IConnectionProperties _connectionProperties;
         protected IDictionary<TZone, Action<TZone, TState>> _inputSubscriptions;
-        protected IConnection _connection;
+        protected IConnection? _connection;
+
         protected DeviceClassification _classification;
 
         protected Device(
@@ -96,9 +97,10 @@ namespace MychIO.Device
                 _lastInputTriggerTimes[zone] = TimeSpan.Zero;
             }
 
-            // Connect
-            _connection = ConnectionFactory.GetConnection(this, _connectionProperties, manager);
-            Id = _connectionProperties.Id;
+            // Connection is only prepared to be created here
+            // Connection Object is only created AFTER ConnectAsync is called!
+            ConnectionFactory.PrepareConnection(this, _connectionProperties, manager);
+            Id = _connectionProperties.Id; // device identifier should probably be actually unique i.e. UUID
             _manager = manager;
         }
 
@@ -120,8 +122,11 @@ namespace MychIO.Device
             _timeProvider.Restart();
             return task.Result;
         }
+
+        // Initializes device!
         public async Task<IDevice> ConnectAsync()
         {
+            _connection = ConnectionFactory.GetConnection(this);
             await _connection.ConnectAsync();
             return (IDevice)this;
         }

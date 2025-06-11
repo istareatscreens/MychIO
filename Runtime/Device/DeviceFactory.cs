@@ -21,7 +21,7 @@ namespace MychIO.Device
             // Add other devices here...
         };
 
-        public static async Task<IDevice> GetDeviceAsync(
+        public static async Task<Func<Task<IDevice>>> GetDeviceAsync(
             string deviceName,
             IDictionary<string, dynamic> connectionProperties = null,
             IDictionary<Enum, Action<Enum, Enum>> inputSubscriptions = null,
@@ -51,7 +51,7 @@ namespace MychIO.Device
                 manager.handleEvent(IOEventType.ConnectionError, message: $"Duplicate connection for {device.GetType().Name} already exists cannot connect");
             }
 
-            return await device.ConnectAsync();
+            return async () => await device.ConnectAsync();
         }
 
         public static DeviceClassification GetClassificationFromDeviceName(string deviceName)

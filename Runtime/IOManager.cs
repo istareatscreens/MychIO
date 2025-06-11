@@ -6,12 +6,13 @@ using System.Linq;
 using MychIO.Event;
 using System.Collections.Concurrent;
 using MychIO.Connection;
+using UnityEngine.UIElements;
 
 namespace MychIO
 {
     using DeviceClassificationToInputAction = Dictionary<DeviceClassification, IDictionary<Enum, Action<Enum, Enum>>>;
 #nullable enable
-    public class IOManager: IDisposable
+    public class IOManager : IDisposable
     {
 
         public const string STANDARD_INPUT = "standard-input";
@@ -28,10 +29,26 @@ namespace MychIO
         // Event System
         protected IDictionary<IOEventType, ControllerEventDelegate> _eventTypeToCallback = new Dictionary<IOEventType, ControllerEventDelegate>();
 
+        private readonly List<Task> _deviceAdditionTasks = new List<Task>();
+        protected IList<Func<Task>> _connectionQueue = new List<Func<Task>>();
+
         // Device Error Handler
         IDeviceErrorHandler? _deviceErrorHandler = null;
 
         public IOManager() { }
+
+        public void ConnectDevices()
+        {
+            Task.Run(async () =>
+            {
+                // ensure all devices are enqueued and ready
+                await Task.WhenAll(_deviceAdditionTasks);
+                foreach (Func<Task> callback in _connectionQueue)
+                {
+                    await callback();
+                }
+            });
+        }
 
         public void AddDeviceByName(
             string deviceName,
@@ -57,26 +74,34 @@ namespace MychIO
                 inputSubscriptions = setDeviceClassification;
             }
 
-            Task.Run(async () =>
+            var deviceAdditionTask = Task.Run(async () =>
             {
                 if (_deviceClassificationToDevice.TryGetValue(deviceClassification, out var oldDevice))
                 {
                     await oldDevice.DisconnectAsync();
                 }
 
-                var device = await DeviceFactory.GetDeviceAsync(
+                var deviceConnectionCallback = await DeviceFactory.GetDeviceAsync(
                     deviceName,
                     connectionProperties,
                     inputSubscriptions,
                     _deviceClassificationToDevice.Values.ToArray(),
                     this
                 );
-                _deviceClassificationToDevice.Add(device.Classification, device);
 
-                // Save for reloading
-                _tagToDeviceClassificationToDeviceInputAction[STANDARD_INPUT] =
-                new DeviceClassificationToInputAction { { deviceClassification, inputSubscriptions } };
+                _connectionQueue.Add(
+                async () =>
+                {
+                    var device = await deviceConnectionCallback();
+                    _deviceClassificationToDevice.Add(device.Classification, device);
+
+                    // Save for reloading
+                    _tagToDeviceClassificationToDeviceInputAction[STANDARD_INPUT] =
+                    new DeviceClassificationToInputAction { { deviceClassification, inputSubscriptions } };
+                });
             });
+
+            _deviceAdditionTasks.Add(deviceAdditionTask);
         }
 
         public void AddTouchPanel(
@@ -153,7 +178,7 @@ namespace MychIO
             return newDict;
         }
 
-        public async Task WriteToDeviceAsync<T>(DeviceClassification deviceClassification, params T[] command) where T:Enum
+        public async Task WriteToDeviceAsync<T>(DeviceClassification deviceClassification, params T[] command) where T : Enum
         {
             if (_deviceClassificationToDevice.TryGetValue(deviceClassification, out var device) && device.IsConnected)
             {
@@ -415,7 +440,7 @@ namespace MychIO
         }
         public void Dispose()
         {
-            foreach(var (k,v) in _deviceClassificationToDevice)
+            foreach (var (k, v) in _deviceClassificationToDevice)
             {
                 v.Disconnect();
             }
